@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BLACKCAT | Streetwear</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="container nav">
+      <a href="#inicio" class="brand" aria-label="BLACKCAT">
+        <div class="brand-mark">
+          <img src="./assets/logo-gato.png" alt="BlackCat">
+        </div>
+        <div class="brand-copy">
+          <strong>BLACKCAT</strong>
+          <small>SUMMER DROP 2026</small>
+        </div>
+      </a>
+
+      <nav class="nav-links">
+        <a href="#catalogo">Catálogo</a>
+        <a href="#categorias">Categorías</a>
+        <a href="#inicio">Inicio</a>
+        <a href="admin.html">Admin</a>
+      </nav>
+
+      <div class="nav-actions">
+        <a class="wa-pill" href="https://wa.me/50361900185" target="_blank" rel="noopener">WhatsApp</a>
+        <button class="cart-btn" id="cartToggle" aria-label="Abrir carrito">
+          <span class="cart-count" id="cartCount">0</span>
+          🛒
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="inicio">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <span class="tag">Streetwear + Anime · Envíos a nivel nacional</span>
+          <h1>BLACK<span class="gradient">CAT</span></h1>
+          <p>Diseños urbanos con esencia anime. Camisas con actitud, presencia visual fuerte y compra rápida desde catálogo, carrito o WhatsApp.</p>
+
+          <div class="hero-tags">
+            <span>TALLAS XS-3XL</span>
+            <span>BASIC & OVERSIZE</span>
+            <span>PREMIUM</span>
+          </div>
+
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#catalogo">Ver catálogo</a>
+            <a class="btn btn-green" href="https://wa.me/50361900185" target="_blank" rel="noopener">Pedir por WhatsApp</a>
+          </div>
+
+          <div class="hero-buy-strip panel">
+            <div class="hero-buy-grid">
+              <div class="hero-buy-steps">
+                <div class="hero-step-card">
+                  <span>Paso 1</span>
+                  <strong>Elige diseño</strong>
+                </div>
+                <div class="hero-step-card">
+                  <span>Paso 2</span>
+                  <strong>Selecciona talla y color</strong>
+                </div>
+                <div class="hero-step-card">
+                  <span>Paso 3</span>
+                  <strong>Confirma por WhatsApp</strong>
+                </div>
+              </div>
+
+              <div class="hero-buy-contact">
+                <a class="hero-contact-pill wa" href="https://wa.me/50361900185" target="_blank" rel="noopener">
+                  <span>WhatsApp</span>
+                  <strong>+503 6190-0185</strong>
+                </a>
+
+                <a class="hero-contact-pill ig hero-contact-instagram" href="https://instagram.com/blackcat.sivar" target="_blank" rel="noopener">
+                  <span>Instagram</span>
+                  <strong>@blackcat.sivar</strong>
+                </a>
+
+                <a class="hero-contact-pill ig hero-contact-tiktok" href="https://tiktok.com/@blackcat.sivar" target="_blank" rel="noopener">
+                  <span>TikTok</span>
+                  <strong>@blackcat.sivar</strong>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-panel panel hero-slider" id="heroSlider">
+          <div class="hero-slides">
+            <div class="hero-slide active">
+              <img class="hero-main-image" src="./assets/assetshero-1.png" alt="Hero BlackCat 1" />
+            </div>
+            <div class="hero-slide">
+              <img class="hero-main-image" src="./assets/assetshero-2.png" alt="Hero BlackCat 2" />
+            </div>
+            <div class="hero-slide">
+              <img class="hero-main-image" src="./assets/assetshero-3.png" alt="Hero BlackCat 3" />
+            </div>
+          </div>
+
+          <div class="hero-overlay"></div>
+
+          <button class="hero-nav hero-prev" id="heroPrev" aria-label="Imagen anterior">‹</button>
+          <button class="hero-nav hero-next" id="heroNext" aria-label="Imagen siguiente">›</button>
+
+          <div class="hero-dots" id="heroDots">
+            <button class="hero-dot active" data-slide="0" aria-label="Ir a slide 1"></button>
+            <button class="hero-dot" data-slide="1" aria-label="Ir a slide 2"></button>
+            <button class="hero-dot" data-slide="2" aria-label="Ir a slide 3"></button>
+          </div>
+
+          <div class="hero-badges">
+            <span>S - XL</span>
+            <span>PROMO ACTIVA</span>
+            <span>COBERTURA NACIONAL</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="categorias">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Explora</span>
+            <div class="title">Categorías</div>
+          </div>
+        </div>
+
+        <div class="cards-3 category-grid">
+          <button class="panel category-card category-filter-card" type="button" data-badge="TOP">
+            <div class="category-bg">
+              <img id="bg-top" alt="Top BlackCat">
+            </div>
+            <span class="category-card-overlay"></span>
+            <div class="category-card-content">
+              <h3>TOP</h3>
+            </div>
+          </button>
+
+          <button class="panel category-card category-filter-card" type="button" data-badge="NEW">
+            <div class="category-bg">
+              <img id="bg-new" alt="New BlackCat">
+            </div>
+            <span class="category-card-overlay"></span>
+            <div class="category-card-content">
+              <h3>NEW</h3>
+            </div>
+          </button>
+
+          <button class="panel category-card category-filter-card" type="button" data-badge="DROP">
+            <div class="category-bg">
+              <img id="bg-drop" alt="Drop BlackCat">
+            </div>
+            <span class="category-card-overlay"></span>
+            <div class="category-card-content">
+              <h3>DROP</h3>
+            </div>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="catalogo">
+      <div class="container">
+        <div class="filters" id="filterChips"></div>
+        <div class="shirt-grid" id="shirtGrid"></div>
+      </div>
+    </section>
+  </main>
+
+  <aside class="cart-panel" id="cartPanel" aria-hidden="true">
+    <div class="cart-head">
+      <strong>Carrito</strong>
+      <button id="cartClose">✕</button>
+    </div>
+    <div class="cart-items" id="cartItems"></div>
+    <div class="cart-footer">
+      <div class="cart-total">Total: <strong id="cartTotal">$0.00</strong></div>
+      <button class="btn btn-primary full" id="checkoutBtn">Enviar por WhatsApp</button>
+    </div>
+  </aside>
+
+  <div class="backdrop" id="backdrop"></div>
+
+  <div class="modal" id="productModal" aria-hidden="true">
+    <div class="panel modal-panel">
+      <button class="modal-close" id="modalClose">✕</button>
+
+      <div class="modal-grid">
+        <div class="modal-media">
+          <img id="modalImage" alt="Producto" />
+        </div>
+
+        <div>
+          <h3 class="modal-title" id="modalTitle"></h3>
+          <div class="modal-sub" id="modalSubtitle"></div>
+
+          <div class="option-group">
+            <label>Tipo de camisa</label>
+            <div class="choices" id="typeChoices"></div>
+          </div>
+
+          <div class="option-group">
+            <label>Talla</label>
+            <div class="choices" id="sizeChoices"></div>
+          </div>
+
+          <div class="option-group">
+            <label>Color</label>
+            <div class="choices colors" id="colorChoices"></div>
+          </div>
+
+          <div class="option-group">
+            <label>Cantidad</label>
+            <div class="qty-row">
+              <button class="qty-btn" id="qtyMinus">-</button>
+              <div class="qty-value" id="qtyValue">1</div>
+              <button class="qty-btn" id="qtyPlus">+</button>
+            </div>
+          </div>
+
+          <div class="price-box">
+            <div>
+              <div>Total de tu pedido</div>
+            </div>
+            <strong id="modalPrice">Selecciona opciones</strong>
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn btn-primary" id="addToCartBtn" disabled>Agregar al carrito</button>
+            <button class="btn btn-green" id="buyNowBtn" disabled>Comprar por WhatsApp</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-config.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
