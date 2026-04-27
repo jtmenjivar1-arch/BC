@@ -251,3 +251,4 @@ function setAdminAuthenticated(value) {
   if (value) localStorage.setItem(ADMIN_SESSION_KEY, 'ok');
   else localStorage.removeItem(ADMIN_SESSION_KEY);
 }
+
