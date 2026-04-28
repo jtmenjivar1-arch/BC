@@ -2563,3 +2563,89 @@ html{scroll-behavior:smooth;}
     transform:scale(1.22)!important;
   }
 }
+/* =========================================
+   FIX TABLET VERTICAL - MODAL PRODUCTO
+   Apila imagen y opciones para que no se monten
+========================================= */
+
+@media (min-width: 721px) and (max-width: 900px) and (orientation: portrait) {
+  .product-modal,
+  .modal-card,
+  .modal-content {
+    width: min(94vw, 760px);
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modal-body,
+  .product-detail,
+  .product-modal-content {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 18px;
+  }
+
+  .modal-media,
+  .product-gallery,
+  .product-image-wrap {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 430px;
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+  }
+
+  .modal-media img,
+  .product-gallery img,
+  .product-image-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .modal-info,
+  .product-info,
+  .product-options {
+    width: 100% !important;
+    max-width: 100% !important;
+    position: relative;
+    z-index: 5;
+  }
+
+  .colors,
+  .color-options,
+  .size-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .modal-actions,
+  .product-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+}
+/* Tablet vertical grande */
+@media (min-width: 901px) and (max-width: 1100px) and (orientation: portrait) {
+  .modal-body,
+  .product-detail,
+  .product-modal-content {
+    grid-template-columns: 48% 52% !important;
+    gap: 18px;
+  }
+
+  .modal-media,
+  .product-gallery,
+  .product-image-wrap {
+    max-width: 100% !important;
+    overflow: hidden;
+  }
+
+  .modal-media img,
+  .product-gallery img,
+  .product-image-wrap img {
+    object-fit: contain;
+  }
+}
