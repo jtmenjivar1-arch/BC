@@ -2649,3 +2649,50 @@ html{scroll-behavior:smooth;}
     object-fit: contain;
   }
 }
+
+
+/* === BLACKCAT FIX 29-04: card full size + rounded corners only === */
+.shirt-card,.product-card-v12{border-radius:26px!important;overflow:hidden!important;}
+.shirt-card .shirt-media{aspect-ratio:4/5!important;width:100%!important;min-height:unset!important;padding:0!important;border-radius:26px 26px 0 0!important;overflow:hidden!important;background:#111217!important;}
+.shirt-card .shirt-media img{width:100%!important;height:100%!important;object-fit:cover!important;object-position:center!important;padding:0!important;transform:none!important;background:transparent!important;border-radius:0!important;}
+.shirt-card .shirt-body{border-radius:0 0 26px 26px!important;}
+.shirt-card:hover .shirt-media img{transform:scale(1.015)!important;}
+@media(max-width:720px){.shirt-card,.product-card-v12{border-radius:20px!important}.shirt-card .shirt-media{border-radius:20px 20px 0 0!important;aspect-ratio:4/5!important}.shirt-card .shirt-body{border-radius:0 0 20px 20px!important}}
+
+/* FIX 29/04: disabled real para botones de talla y estética de cards */
+.choice:disabled,
+.choice[disabled]{
+  opacity:.32!important;
+  cursor:not-allowed!important;
+  filter:grayscale(1)!important;
+  transform:none!important;
+  pointer-events:none!important;
+  background:rgba(255,255,255,.04)!important;
+  color:rgba(255,255,255,.46)!important;
+  border-color:rgba(255,255,255,.10)!important;
+}
+.choice:disabled::after,
+.choice[disabled]::after{
+  content:'No disponible';
+  position:absolute;
+  left:50%;
+  bottom:-18px;
+  transform:translateX(-50%);
+  font-size:8px;
+  line-height:1;
+  opacity:.72;
+  white-space:nowrap;
+  pointer-events:none;
+}
+.shirt-card,
+.product-card-v12{
+  overflow:hidden!important;
+}
+.shirt-media,
+.product-card-media-v12{
+  overflow:hidden!important;
+}
+.shirt-media img,
+.product-card-media-v12 img{
+  border-radius:0!important;
+}
