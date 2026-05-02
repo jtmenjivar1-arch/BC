@@ -343,25 +343,30 @@ function bindUI() {
   $('#menuClose')?.addEventListener('click', () => closeDrawer());
 
   $$('.drawer-links a, .bottom-app-nav a, .nav-links a, .hero-actions a, .promo-pack-actions a').forEach((link) => {
-    link.addEventListener('click', (event) => {
-      const href = link.getAttribute('href') || '';
+  link.addEventListener('click', (event) => {
+    const href = link.getAttribute('href') || '';
 
-      if (href === '#catalogo') {
-        event.preventDefault();
-        showCatalog(true);
-        closeDrawer();
-      }
-    });
+    if (href === '#catalogo') {
+      event.preventDefault();
+      showCatalog(true);
+      closeDrawer();
+      return;
+    }
+
+    closeDrawer();
   });
+});
 
   $$('[data-line]').forEach((button) => {
-    button.addEventListener('click', () => {
-      const line = button.dataset.line;
+  button.addEventListener('click', () => {
+    const line = button.dataset.line;
 
-      if (line === 'hoodie') showHoodies(true);
-      if (line === 'extra') showExtras(true);
-    });
+    if (line === 'hoodie') showHoodies(true);
+    if (line === 'extra') showExtras(true);
+
+    closeDrawer();
   });
+});
 
   $('.series-clear')?.addEventListener('click', () => {
     BC.activeAnime = 'all';
