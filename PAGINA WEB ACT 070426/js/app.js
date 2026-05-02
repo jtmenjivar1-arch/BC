@@ -1058,10 +1058,16 @@ function closePanels() {
   closeDrawer();
 }
 
-function openDrawer() {
-  $('#mobileDrawer')?.classList.add('open');
-  $('#mobileDrawer')?.setAttribute('aria-hidden', 'false');
-  el.backdrop?.classList.add('show');
+function closeDrawer() {
+  $('#mobileDrawer')?.classList.remove('open');
+  $('#mobileDrawer')?.setAttribute('aria-hidden', 'true');
+
+  const cartOpen = el.cartPanel?.classList.contains('open');
+  const modalOpen = el.modal?.classList.contains('open') || el.modal?.classList.contains('show');
+
+  if (!cartOpen && !modalOpen) {
+    el.backdrop?.classList.remove('show');
+  }
 }
 
 function closeDrawer() {
