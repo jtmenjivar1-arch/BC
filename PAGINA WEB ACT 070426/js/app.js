@@ -25,13 +25,8 @@ const BC = {
 
 const MONEY = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
-/*
-  IMPORTANTE:
-  Aquí ya quitamos las imágenes antiguas como chainsaw1, mha1, jujutsu1, etc.
-  Las tarjetas de series usarán la imagen del primer producto disponible.
-*/
 const SERIES_IMAGES = {
-  'BlackCat': 'assets/logo-gato.png',
+  BlackCat: 'assets/logo-gato.png',
 };
 
 const HOODIE_WORDS = ['hoodie', 'hoodies', 'sudadera', 'sudaderas', 'sueter', 'suéter', 'hoddie'];
@@ -169,12 +164,6 @@ async function loadData() {
   const fallback = window.DEFAULT_SITE_DATA || { hero: {}, contacts: {}, products: [] };
 
   BC.settings = normalizeSettings(fallback);
-
-  /*
-    Productos locales del config.js.
-    Los productos forceLocal se excluyen aquí porque luego se agregan desde LOCAL_SEED_PRODUCTS
-    para evitar duplicados.
-  */
   BC.products = normalizeProducts((fallback.products || []).filter((p) => p.forceLocal !== true));
 
   if (window.supabaseClient) {
@@ -197,10 +186,6 @@ async function loadData() {
     }
   }
 
-  /*
-    Estos productos locales se agregan siempre.
-    Actualmente aquí están los termos/extras.
-  */
   BC.products = mergeSeedProducts(BC.products, normalizeProducts(LOCAL_SEED_PRODUCTS));
 }
 
@@ -339,34 +324,49 @@ function updateContactLinks() {
 }
 
 function bindUI() {
-  $('#menuToggle')?.addEventListener('click', () => openDrawer());
-  $('#menuClose')?.addEventListener('click', () => closeDrawer());
+  $('#menuToggle')?.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    openDrawer();
+  });
+
+  $('#menuClose')?.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    closeDrawer(true);
+  });
 
   $$('.drawer-links a, .bottom-app-nav a, .nav-links a, .hero-actions a, .promo-pack-actions a').forEach((link) => {
-  link.addEventListener('click', (event) => {
-    const href = link.getAttribute('href') || '';
+    link.addEventListener('click', (event) => {
+      const href = link.getAttribute('href') || '';
 
-    if (href === '#catalogo') {
-      event.preventDefault();
-      showCatalog(true);
-      closeDrawer();
-      return;
-    }
+      if (href === '#catalogo') {
+        event.preventDefault();
+        showCatalog(true);
 
-    closeDrawer();
+        if (link.closest('#mobileDrawer')) closeDrawer(true);
+        return;
+      }
+
+      if (link.closest('#mobileDrawer')) {
+        closeDrawer(true);
+      }
+    });
   });
-});
 
   $$('[data-line]').forEach((button) => {
-  button.addEventListener('click', () => {
-    const line = button.dataset.line;
+    button.addEventListener('click', (event) => {
+      const line = button.dataset.line;
 
-    if (line === 'hoodie') showHoodies(true);
-    if (line === 'extra') showExtras(true);
+      if (line === 'hoodie') showHoodies(true);
+      if (line === 'extra') showExtras(true);
 
-    closeDrawer();
+      if (button.closest('#mobileDrawer')) {
+        event.preventDefault();
+        closeDrawer(true);
+      }
+    });
   });
-});
 
   $('.series-clear')?.addEventListener('click', () => {
     BC.activeAnime = 'all';
@@ -1036,6 +1036,7 @@ function openWhatsApp(message) {
 }
 
 function openCart() {
+  closeDrawer(true);
   el.cartPanel?.classList.add('open');
   el.cartPanel?.setAttribute('aria-hidden', 'false');
   el.backdrop?.classList.add('show');
@@ -1051,7 +1052,10 @@ function closeModal() {
   el.modal?.setAttribute('aria-hidden', 'true');
   document.body.classList.remove('modal-open');
 
-  if (!el.cartPanel?.classList.contains('open')) {
+  const cartOpen = el.cartPanel?.classList.contains('open');
+  const drawerOpen = $('#mobileDrawer')?.classList.contains('open');
+
+  if (!cartOpen && !drawerOpen) {
     el.backdrop?.classList.remove('show');
   }
 }
@@ -1059,25 +1063,35 @@ function closeModal() {
 function closePanels() {
   closeCart();
   closeModal();
+  closeDrawer(true);
   el.backdrop?.classList.remove('show');
-  closeDrawer();
 }
 
-function closeDrawer() {
-  $('#mobileDrawer')?.classList.remove('open');
-  $('#mobileDrawer')?.setAttribute('aria-hidden', 'true');
+function openDrawer() {
+  const drawer = $('#mobileDrawer');
+
+  if (!drawer) return;
+
+  closeCart();
+  closeModal();
+
+  drawer.classList.add('open');
+  drawer.setAttribute('aria-hidden', 'false');
+  el.backdrop?.classList.add('show');
+}
+
+function closeDrawer(forceBackdrop = false) {
+  const drawer = $('#mobileDrawer');
+
+  drawer?.classList.remove('open');
+  drawer?.setAttribute('aria-hidden', 'true');
 
   const cartOpen = el.cartPanel?.classList.contains('open');
   const modalOpen = el.modal?.classList.contains('open') || el.modal?.classList.contains('show');
 
-  if (!cartOpen && !modalOpen) {
+  if (forceBackdrop || (!cartOpen && !modalOpen)) {
     el.backdrop?.classList.remove('show');
   }
-}
-
-function closeDrawer() {
-  $('#mobileDrawer')?.classList.remove('open');
-  $('#mobileDrawer')?.setAttribute('aria-hidden', 'true');
 }
 
 function saveCart() {
@@ -1249,10 +1263,6 @@ function injectFunctionalStyles() {
       transform:none!important;
     }
 
-    /*
-      Extras / termos:
-      Se deja en cover y padding 0 para evitar líneas blancas a los lados.
-    */
     .shirt-card.is-extra-card .shirt-media{
       background:#111217!important;
       padding:0!important;
@@ -1411,9 +1421,6 @@ function injectFunctionalStyles() {
   document.head.appendChild(style);
 }
 
-/*
-  Compatibilidad con llamadas viejas desde HTML o pruebas anteriores.
-*/
 window.showCatalog = showCatalog;
 window.showHoodies = showHoodies;
 window.showCategory = (category) => {
