@@ -414,6 +414,7 @@ function showCatalog(scroll = true) {
 
   setLineActive('catalog');
   updateCatalogHeader();
+  updateSeriesSectionVisibility();
   renderSeries();
   renderCatalog();
 
@@ -429,6 +430,7 @@ function showHoodies(scroll = true) {
 
   setLineActive('hoodies');
   updateCatalogHeader();
+  updateSeriesSectionVisibility();
   renderSeries();
   renderCatalog();
 
@@ -444,6 +446,7 @@ function showExtras(scroll = true) {
 
   setLineActive('extras');
   updateCatalogHeader();
+  updateSeriesSectionVisibility();
   renderSeries();
   renderCatalog();
 
@@ -455,6 +458,33 @@ function setLineActive(view) {
 
   if (view === 'hoodies') $('.hoodie-card')?.classList.add('active-line');
   if (view === 'extras') $('.extras-card')?.classList.add('active-line');
+}
+
+function updateSeriesSectionVisibility() {
+  const section = $('#categorias');
+  const eyebrow = $('#categorias .eyebrow');
+  const title = $('#categorias .title');
+  const controls = $('#categorias .series-controls');
+
+  if (!section) return;
+
+  if (BC.view === 'extras') {
+    section.style.display = 'none';
+    return;
+  }
+
+  section.style.display = '';
+
+  if (controls) controls.style.display = '';
+
+  if (BC.view === 'hoodies') {
+    if (eyebrow) eyebrow.textContent = 'Filtra hoodies por serie';
+    if (title) title.textContent = 'Hoodie selection';
+    return;
+  }
+
+  if (eyebrow) eyebrow.textContent = 'Filtra por serie';
+  if (title) title.textContent = 'Anime selection';
 }
 
 function updateCatalogHeader() {
@@ -498,6 +528,12 @@ function updateCatalogHeader() {
 function renderSeries() {
   const series = getAvailableSeries();
 
+  if (BC.view === 'extras') {
+    if (el.filterChips) el.filterChips.innerHTML = '';
+    if (el.seriesReel) el.seriesReel.innerHTML = '';
+    return;
+  }
+
   if (el.filterChips) {
     el.filterChips.innerHTML = [
       `<button class="filter ${BC.activeAnime === 'all' ? 'active' : ''}" type="button" data-anime="all">Todos</button>`,
@@ -517,7 +553,7 @@ function renderSeries() {
         <img src="${escapeAttr(s.image)}" alt="${escapeAttr(s.name)}" loading="lazy">
       </div>
       <div class="category-card-content">
-        <small>Serie</small>
+        <small>${BC.view === 'hoodies' ? 'Hoodie serie' : 'Serie'}</small>
         <h3>${escapeHTML(s.name)}</h3>
         <span class="category-count">${s.count} diseño${s.count === 1 ? '' : 's'}</span>
       </div>
@@ -586,6 +622,7 @@ function renderCatalog() {
   if (!el.grid) return;
 
   updateCatalogHeader();
+  updateSeriesSectionVisibility();
 
   const items = getVisibleProducts();
 
