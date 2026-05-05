@@ -2696,3 +2696,460 @@ html{scroll-behavior:smooth;}
 .product-card-media-v12 img{
   border-radius:0!important;
 }
+/* ===== Anime selection: carrusel compacto con cards solapadas ===== */
+
+#categorias {
+  overflow: hidden;
+}
+
+#categorias .section-head,
+.series-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.series-reel,
+#seriesReel {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  gap: 0 !important;
+  padding: 8px 36px 18px 4px !important;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  scroll-behavior: smooth;
+}
+
+.series-reel::-webkit-scrollbar,
+#seriesReel::-webkit-scrollbar {
+  display: none;
+}
+
+.series-reel .category-card,
+#seriesReel .category-card {
+  flex: 0 0 245px !important;
+  width: 245px !important;
+  min-width: 245px !important;
+  max-width: 245px !important;
+  min-height: 172px !important;
+  margin-right: -18px !important;
+  scroll-snap-align: start;
+  transform: scale(0.96);
+  transition:
+    transform .22s ease,
+    opacity .22s ease,
+    filter .22s ease,
+    box-shadow .22s ease,
+    z-index .22s ease;
+  z-index: 1;
+}
+
+.series-reel .category-card:hover,
+#seriesReel .category-card:hover,
+.series-reel .category-card.active,
+#seriesReel .category-card.active {
+  transform: scale(1.04) translateY(-4px);
+  z-index: 6;
+  opacity: 1;
+  filter: brightness(1.08);
+  box-shadow: 0 18px 44px rgba(0,0,0,.42);
+}
+
+.series-reel .category-card:hover + .category-card,
+#seriesReel .category-card:hover + .category-card {
+  transform: scale(0.94) translateX(8px);
+}
+
+/* Flechas del carrusel visibles y funcionales */
+#seriesPrev,
+#seriesNext {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.08);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 900;
+  z-index: 8;
+  backdrop-filter: blur(10px);
+}
+
+#seriesPrev:hover,
+#seriesNext:hover {
+  background: rgba(255,255,255,.16);
+  transform: translateY(-1px);
+}
+
+/* Botón Ver todo */
+.series-clear {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .series-reel,
+  #seriesReel {
+    padding: 6px 24px 16px 2px !important;
+  }
+
+  .series-reel .category-card,
+  #seriesReel .category-card {
+    flex: 0 0 205px !important;
+    width: 205px !important;
+    min-width: 205px !important;
+    max-width: 205px !important;
+    min-height: 150px !important;
+    margin-right: -12px !important;
+  }
+
+  .series-reel .category-card:hover,
+  #seriesReel .category-card:hover,
+  .series-reel .category-card.active,
+  #seriesReel .category-card.active {
+    transform: scale(1.02) translateY(-3px);
+  }
+}
+/* ===== BLACKCAT FIX FINAL: Anime selection carrusel agrupado ===== */
+
+#categorias {
+  overflow: hidden !important;
+}
+
+#categorias .container {
+  overflow: visible !important;
+}
+
+.series-head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  margin-bottom: 16px !important;
+}
+
+.series-controls {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-shrink: 0 !important;
+}
+
+.series-arrow {
+  width: 42px !important;
+  height: 42px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,255,255,.22) !important;
+  background: rgba(255,255,255,.08) !important;
+  color: #fff !important;
+  cursor: pointer !important;
+  font-size: 26px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  backdrop-filter: blur(10px) !important;
+  transition: transform .18s ease, background .18s ease, border-color .18s ease !important;
+}
+
+.series-arrow:hover {
+  background: rgba(255,255,255,.16) !important;
+  border-color: rgba(255,255,255,.38) !important;
+  transform: translateY(-1px) scale(1.04) !important;
+}
+
+.series-clear {
+  min-height: 42px !important;
+  padding: 0 16px !important;
+  border-radius: 999px !important;
+  white-space: nowrap !important;
+}
+
+.series-reel,
+#seriesReel {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  gap: 0 !important;
+  padding: 8px 36px 20px 4px !important;
+  scroll-snap-type: x mandatory !important;
+  scroll-behavior: smooth !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.series-reel::-webkit-scrollbar,
+#seriesReel::-webkit-scrollbar {
+  display: none !important;
+}
+
+.series-reel .category-card,
+#seriesReel .category-card {
+  flex: 0 0 255px !important;
+  width: 255px !important;
+  min-width: 255px !important;
+  max-width: 255px !important;
+  min-height: 170px !important;
+  margin-right: -20px !important;
+  scroll-snap-align: start !important;
+  transform: scale(.96) !important;
+  transform-origin: center !important;
+  z-index: 1 !important;
+  transition:
+    transform .22s ease,
+    filter .22s ease,
+    box-shadow .22s ease,
+    z-index .22s ease !important;
+}
+
+.series-reel .category-card:hover,
+#seriesReel .category-card:hover,
+.series-reel .category-card.active,
+#seriesReel .category-card.active {
+  transform: scale(1.05) translateY(-4px) !important;
+  z-index: 8 !important;
+  filter: brightness(1.08) !important;
+  box-shadow: 0 20px 48px rgba(0,0,0,.46) !important;
+}
+
+.series-reel .category-card:hover + .category-card,
+#seriesReel .category-card:hover + .category-card {
+  transform: scale(.94) translateX(10px) !important;
+}
+
+.series-reel .category-card h3,
+#seriesReel .category-card h3 {
+  font-size: 24px !important;
+  line-height: .95 !important;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .series-head {
+    align-items: flex-start !important;
+  }
+
+  .series-controls {
+    gap: 6px !important;
+  }
+
+  .series-arrow {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 22px !important;
+  }
+
+  .series-clear {
+    min-height: 36px !important;
+    padding: 0 12px !important;
+    font-size: 12px !important;
+  }
+
+  .series-reel,
+  #seriesReel {
+    padding: 6px 24px 16px 2px !important;
+  }
+
+  .series-reel .category-card,
+  #seriesReel .category-card {
+    flex: 0 0 205px !important;
+    width: 205px !important;
+    min-width: 205px !important;
+    max-width: 205px !important;
+    min-height: 145px !important;
+    margin-right: -12px !important;
+  }
+
+  .series-reel .category-card:hover,
+  #seriesReel .category-card:hover,
+  .series-reel .category-card.active,
+  #seriesReel .category-card.active {
+    transform: scale(1.03) translateY(-3px) !important;
+  }
+}
+/* ===== Ocultar flechas de Anime selection en móvil ===== */
+@media (max-width: 768px) {
+  .series-arrow,
+  #seriesPrev,
+  #seriesNext {
+    display: none !important;
+  }
+
+  .series-controls {
+    justify-content: flex-end !important;
+  }
+
+  .series-clear {
+    min-height: 38px !important;
+    padding: 0 14px !important;
+    font-size: 12px !important;
+  }
+}
+/* ===== Anime selection FINAL: cards juntas, completas y arrastrables ===== */
+
+/* Ocultar flechas */
+#seriesPrev,
+#seriesNext,
+.series-arrow {
+  display: none !important;
+}
+
+/* Header limpio */
+.series-head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+}
+
+.series-controls {
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+}
+
+.series-clear {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 42px !important;
+  padding: 0 16px !important;
+  border-radius: 999px !important;
+  white-space: nowrap !important;
+}
+
+/* Contenedor */
+#categorias {
+  overflow: hidden !important;
+}
+
+#categorias .container {
+  overflow: hidden !important;
+}
+
+/* Carrusel sin barra visible */
+.series-reel,
+#seriesReel {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  gap: 10px !important;
+  padding: 8px 18px 18px 2px !important;
+  scroll-snap-type: x proximity !important;
+  scroll-behavior: smooth !important;
+  cursor: grab !important;
+  user-select: none !important;
+
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.series-reel:active,
+#seriesReel:active {
+  cursor: grabbing !important;
+}
+
+.series-reel::-webkit-scrollbar,
+#seriesReel::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* Cards completas, juntas pero sin tapar nombres */
+.series-reel .category-card,
+#seriesReel .category-card {
+  flex: 0 0 245px !important;
+  width: 245px !important;
+  min-width: 245px !important;
+  max-width: 245px !important;
+  min-height: 168px !important;
+  margin-right: 0 !important;
+  scroll-snap-align: start !important;
+  transform: scale(.98) !important;
+  z-index: 1 !important;
+  transition:
+    transform .22s ease,
+    filter .22s ease,
+    box-shadow .22s ease,
+    z-index .22s ease !important;
+}
+
+/* Efecto solo al seleccionar/pasar mouse */
+.series-reel .category-card:hover,
+#seriesReel .category-card:hover,
+.series-reel .category-card.active,
+#seriesReel .category-card.active {
+  transform: scale(1.04) translateY(-4px) !important;
+  z-index: 8 !important;
+  filter: brightness(1.08) !important;
+  box-shadow: 0 18px 44px rgba(0,0,0,.46) !important;
+}
+
+/* Texto más controlado para que no tape */
+.series-reel .category-card h3,
+#seriesReel .category-card h3 {
+  font-size: 23px !important;
+  line-height: .95 !important;
+  max-width: 92% !important;
+  word-break: normal !important;
+}
+
+/* Evita que la imagen se seleccione al arrastrar */
+.series-reel img,
+#seriesReel img {
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
+/* Móvil */
+@media (max-width: 768px) {
+  .series-head {
+    align-items: flex-start !important;
+  }
+
+  .series-clear {
+    min-height: 38px !important;
+    padding: 0 14px !important;
+    font-size: 12px !important;
+  }
+
+  .series-reel,
+  #seriesReel {
+    gap: 8px !important;
+    padding: 6px 14px 16px 2px !important;
+  }
+
+  .series-reel .category-card,
+  #seriesReel .category-card {
+    flex: 0 0 205px !important;
+    width: 205px !important;
+    min-width: 205px !important;
+    max-width: 205px !important;
+    min-height: 145px !important;
+  }
+
+  .series-reel .category-card h3,
+  #seriesReel .category-card h3 {
+    font-size: 20px !important;
+  }
+}
+#seriesReel.dragging,
+.series-reel.dragging {
+  cursor: grabbing !important;
+  scroll-snap-type: none !important;
+}
