@@ -38,15 +38,24 @@ const PRODUCT_TYPES = [
 ];
 
 const SHIRT_SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'];
-const HOODIE_SIZES = ['S', 'M', 'L', 'XL', '2XL'];
-const HOODIE_SIZE_PRICES = { S: 29.99, M: 29.99, L: 32.99, XL: 34.00, '2XL': 36.99 };
+
+const HOODIE_SIZES = ['L', 'XL', '2XL'];
+
+const HOODIE_SIZE_PRICES = {
+  L: 28.99,
+  XL: 34.00,
+  '2XL': 35.99,
+};
+
+const TERMO_SIZES = ['12oz', '20oz', '40oz'];
 
 const COLORS = [
   { name: 'Negro', value: '#111111' },
   { name: 'Blanco', value: '#f4f4f4' },
   { name: 'Beige', value: '#d7c7aa' },
   { name: 'Gris', value: '#8e96a3' },
-  { name: 'Verde Militar', value: '#556b2f' },
+  { name: 'Rosado', value: '#e83e8c' },
+  { name: 'Metal', value: '#b8bcc2' },
 ];
 
 const LOCAL_SEED_PRODUCTS = [
@@ -128,6 +137,7 @@ async function initBlackCat() {
   injectFunctionalStyles();
   loadCart();
   bindUI();
+  bindSeriesDragScroll();
   initHeroSlider();
   await loadData();
   applySettings();
@@ -226,22 +236,68 @@ function normalizeProducts(items) {
       const anime = p.anime || p.serie || p.series || p.category_anime || 'BlackCat';
       const badge = p.badge || p.etiqueta || 'NEW';
       const image = p.image_url || p.image || p.imagen || p.mockup || '';
-      const rawCategory = p.category || p.categoria || p.product_category || p.tipo_categoria || p.line || p.linea || p.product_type || p.type || '';
+
+      const rawCategory = [
+        p.category,
+        p.categoria,
+        p.product_category,
+        p.tipo_categoria,
+        p.line,
+        p.linea,
+        p.product_type,
+        p.type,
+      ].filter(Boolean).join(' ');
+
       const category = detectProductCategory({ title, anime, badge, rawCategory });
+
+      const shirtMode = p.shirt_mode || p.shirtMode || 'basic';
+      const priceBasic = Number(p.price_basic || 16.99);
+      const priceOversize = Number(p.price_oversize || 19.99);
+      const capacity = p.capacity || p.capacidad || '';
+
+      const colors = normalizeList(p.colors || p.colores || p.available_colors || p.color || p.availableColors);
+
+      let sizes = normalizeList(p.sizes || p.tallas || p.available_sizes || p.availableSizes);
+
+      if (!sizes.length && category === 'catalog') sizes = SHIRT_SIZES;
+      if (!sizes.length && category === 'hoodies') sizes = HOODIE_SIZES;
+      if (!sizes.length && category === 'extras') sizes = capacity ? [capacity] : TERMO_SIZES;
+
+      let price = Number(p.price || p.precio || 0);
+
+      if (!price && category === 'catalog') {
+        price = shirtMode === 'oversize' ? priceOversize : priceBasic;
+      }
+
+      if (!price && category === 'hoodies') {
+        price = 28.99;
+      }
+
+      if (!price && category === 'extras') {
+        price = 14.99;
+      }
 
       return {
         id: String(p.id || p.uuid || p.slug || `local-${index + 1}`),
         title,
         character,
-        anime,
+        anime: category === 'extras' ? 'Termos' : anime,
         badge,
         image,
         category,
+        productType: p.product_type || p.productType || '',
+        shirtMode,
+        price,
+        priceBasic,
+        priceOversize,
+        priceCustom: Number(p.price_custom || 0),
+        capacity,
+        customDesign: p.custom_design === true || p.customDesign === true,
+        designTitle: p.design_title || p.designTitle || '',
         active: p.active === false || p.activo === false ? false : true,
         orderIndex: Number(p.order_index || p.orden || index + 1),
-        price: Number(p.price || p.precio || (category === 'hoodies' ? 29.99 : 16.99)),
-        colors: normalizeList(p.colors || p.colores || p.available_colors || p.color || p.availableColors),
-        sizes: normalizeList(p.sizes || p.tallas || p.available_sizes || p.availableSizes),
+        colors,
+        sizes,
       };
     })
     .filter((p) => p.active && p.image)
@@ -270,10 +326,42 @@ function normalizeList(value) {
 }
 
 function detectProductCategory(product) {
+  const raw = normalize(product.rawCategory);
   const text = normalize(`${product.rawCategory} ${product.title} ${product.anime} ${product.badge}`);
 
-  if (HOODIE_WORDS.some((word) => text.includes(normalize(word)))) return 'hoodies';
-  if (EXTRAS_WORDS.some((word) => text.includes(normalize(word)))) return 'extras';
+  if (
+    raw === 'hoodie' ||
+    raw === 'hoodies' ||
+    raw.includes('hoodie') ||
+    raw.includes('sudadera') ||
+    HOODIE_WORDS.some((word) => text.includes(normalize(word)))
+  ) {
+    return 'hoodies';
+  }
+
+  if (
+    raw === 'termo' ||
+    raw === 'termos' ||
+    raw === 'extra' ||
+    raw === 'extras' ||
+    raw.includes('termo') ||
+    EXTRAS_WORDS.some((word) => text.includes(normalize(word)))
+  ) {
+    return 'extras';
+  }
+
+  if (
+    raw === 'camisa' ||
+    raw === 'camiseta' ||
+    raw === 'basic' ||
+    raw === 'oversize' ||
+    raw === 'catalog' ||
+    raw === 'catalogo' ||
+    raw.includes('camisa') ||
+    raw.includes('camiseta')
+  ) {
+    return 'catalog';
+  }
 
   return 'catalog';
 }
@@ -321,6 +409,58 @@ function updateContactLinks() {
   $$('a[href^="mailto:"]').forEach((a) => {
     a.href = `mailto:${BC.settings.email || BC.defaultEmail}`;
   });
+}
+function bindSeriesDragScroll() {
+  const reel = document.getElementById('seriesReel');
+  if (!reel) return;
+
+  let isDown = false;
+  let startX = 0;
+  let scrollLeft = 0;
+  let hasDragged = false;
+
+  reel.addEventListener('mousedown', (event) => {
+    isDown = true;
+    hasDragged = false;
+    reel.classList.add('dragging');
+    startX = event.pageX - reel.offsetLeft;
+    scrollLeft = reel.scrollLeft;
+  });
+
+  reel.addEventListener('mouseleave', () => {
+    isDown = false;
+    reel.classList.remove('dragging');
+  });
+
+  reel.addEventListener('mouseup', () => {
+    isDown = false;
+    setTimeout(() => {
+      hasDragged = false;
+    }, 0);
+    reel.classList.remove('dragging');
+  });
+
+  reel.addEventListener('mousemove', (event) => {
+    if (!isDown) return;
+
+    event.preventDefault();
+
+    const x = event.pageX - reel.offsetLeft;
+    const walk = (x - startX) * 1.35;
+
+    if (Math.abs(walk) > 5) {
+      hasDragged = true;
+    }
+
+    reel.scrollLeft = scrollLeft - walk;
+  });
+
+  reel.addEventListener('click', (event) => {
+    if (!hasDragged) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+  }, true);
 }
 
 function bindUI() {
@@ -414,7 +554,6 @@ function showCatalog(scroll = true) {
 
   setLineActive('catalog');
   updateCatalogHeader();
-  updateSeriesSectionVisibility();
   renderSeries();
   renderCatalog();
 
@@ -430,7 +569,6 @@ function showHoodies(scroll = true) {
 
   setLineActive('hoodies');
   updateCatalogHeader();
-  updateSeriesSectionVisibility();
   renderSeries();
   renderCatalog();
 
@@ -446,7 +584,6 @@ function showExtras(scroll = true) {
 
   setLineActive('extras');
   updateCatalogHeader();
-  updateSeriesSectionVisibility();
   renderSeries();
   renderCatalog();
 
@@ -458,33 +595,6 @@ function setLineActive(view) {
 
   if (view === 'hoodies') $('.hoodie-card')?.classList.add('active-line');
   if (view === 'extras') $('.extras-card')?.classList.add('active-line');
-}
-
-function updateSeriesSectionVisibility() {
-  const section = $('#categorias');
-  const eyebrow = $('#categorias .eyebrow');
-  const title = $('#categorias .title');
-  const controls = $('#categorias .series-controls');
-
-  if (!section) return;
-
-  if (BC.view === 'extras') {
-    section.style.display = 'none';
-    return;
-  }
-
-  section.style.display = '';
-
-  if (controls) controls.style.display = '';
-
-  if (BC.view === 'hoodies') {
-    if (eyebrow) eyebrow.textContent = 'Filtra hoodies por serie';
-    if (title) title.textContent = 'Hoodie selection';
-    return;
-  }
-
-  if (eyebrow) eyebrow.textContent = 'Filtra por serie';
-  if (title) title.textContent = 'Anime selection';
 }
 
 function updateCatalogHeader() {
@@ -525,14 +635,26 @@ function updateCatalogHeader() {
   backRow.style.display = BC.activeAnime !== 'all' || BC.search ? 'flex' : 'none';
 }
 
-function renderSeries() {
-  const series = getAvailableSeries();
 
-  if (BC.view === 'extras') {
-    if (el.filterChips) el.filterChips.innerHTML = '';
+function updateSeriesSectionVisibility() {
+  const section = $('#categorias');
+  if (!section) return;
+
+  const hideForExtras = BC.view === 'extras';
+  section.style.display = hideForExtras ? 'none' : '';
+
+  if (hideForExtras) {
     if (el.seriesReel) el.seriesReel.innerHTML = '';
-    return;
+    if (el.filterChips) el.filterChips.innerHTML = '';
   }
+}
+
+function renderSeries() {
+  updateSeriesSectionVisibility();
+
+  if (BC.view === 'extras') return;
+
+  const series = getAvailableSeries();
 
   if (el.filterChips) {
     el.filterChips.innerHTML = [
@@ -553,7 +675,7 @@ function renderSeries() {
         <img src="${escapeAttr(s.image)}" alt="${escapeAttr(s.name)}" loading="lazy">
       </div>
       <div class="category-card-content">
-        <small>${BC.view === 'hoodies' ? 'Hoodie serie' : 'Serie'}</small>
+        <small>Serie</small>
         <h3>${escapeHTML(s.name)}</h3>
         <span class="category-count">${s.count} diseño${s.count === 1 ? '' : 's'}</span>
       </div>
@@ -578,7 +700,7 @@ function setAnime(anime) {
 }
 
 function getAvailableSeries() {
-  const source = getProductsByView();
+  const source = getProductsByView().filter((product) => product.category !== 'extras');
   const map = new Map();
 
   source.forEach((product) => {
@@ -622,7 +744,6 @@ function renderCatalog() {
   if (!el.grid) return;
 
   updateCatalogHeader();
-  updateSeriesSectionVisibility();
 
   const items = getVisibleProducts();
 
@@ -655,6 +776,29 @@ function renderProductCard(product) {
     product.category === 'extras' ? 'is-extra-card' : '',
   ].filter(Boolean).join(' ');
 
+  const categoryLabel =
+    product.category === 'hoodies'
+      ? 'HOODIE'
+      : product.category === 'extras'
+        ? 'TERMO'
+        : product.anime;
+
+  const commerceLabel =
+    product.category === 'hoodies'
+      ? 'Hoodie'
+      : product.category === 'extras'
+        ? product.capacity || 'Termo'
+        : 'Camiseta';
+
+  const priceLabel =
+    product.category === 'hoodies'
+      ? `desde ${MONEY.format(Number(product.price || 28.99))}`
+      : product.category === 'extras'
+        ? MONEY.format(Number(product.price || 0))
+        : product.shirtMode === 'oversize'
+          ? `desde ${MONEY.format(Number(product.priceOversize || 19.99))}`
+          : `desde ${MONEY.format(Number(product.priceBasic || 16.99))}`;
+
   return `
     <article class="${cardClasses}" data-id="${escapeAttr(product.id)}">
       <button class="shirt-media" type="button" aria-label="Ver ${escapeAttr(product.title)}">
@@ -664,14 +808,14 @@ function renderProductCard(product) {
 
       <div class="shirt-body">
         <div class="card-title-block">
-          <span class="mini-badge">${escapeHTML(product.category === 'hoodies' ? 'HOODIE' : product.category === 'extras' ? 'TERMO' : product.anime)}</span>
+          <span class="mini-badge">${escapeHTML(categoryLabel)}</span>
           <h3>${escapeHTML(product.title)}</h3>
-          <p>${escapeHTML(product.character || product.anime || 'BlackCat')}</p>
+          <p>${escapeHTML(product.designTitle || product.character || product.anime || 'BlackCat')}</p>
         </div>
 
         <div class="card-commerce">
-          <strong>${product.category === 'hoodies' ? 'desde $29.99' : product.category === 'extras' ? MONEY.format(product.price || 0) : 'desde $16.99'}</strong>
-          <span>${escapeHTML(product.category === 'hoodies' ? 'Hoodie' : product.category === 'extras' ? 'Termo' : 'Camiseta')}</span>
+          <strong>${priceLabel}</strong>
+          <span>${escapeHTML(commerceLabel)}</span>
         </div>
 
         <div class="card-actions product-card-actions-v12">
@@ -702,7 +846,9 @@ function openProduct(product) {
   BC.selectedProduct = product;
   BC.selectedVariant = {
     type: product.category === 'hoodies' ? 'hoodie' : (product.category === 'extras' ? 'termo' : 'basic'),
-    size: product.category === 'extras' ? (product.sizes?.[0] || '20oz') : (product.category === 'hoodies' ? 'M' : 'M'),
+    size: product.category === 'extras'
+  ? (product.sizes?.[0] || product.capacity || '20oz')
+  : (product.category === 'hoodies' ? 'L' : 'M'),
     color: getDefaultColor(product),
     qty: 1,
   };
@@ -773,12 +919,32 @@ function renderTypeChoices(product) {
   }
 
   if (product.category === 'extras') {
-    el.typeChoices.innerHTML = `<button class="choice active" type="button" data-type="termo">Termo</button>`;
-    BC.selectedVariant.type = 'termo';
+    const label = product.customDesign ? 'Personalizado' : 'Termo';
+    el.typeChoices.innerHTML = `<button class="choice active" type="button" data-type="termo">${escapeHTML(label)}</button>`;
+    BC.selectedVariant.type = product.customDesign ? 'personalizado' : 'termo';
     return;
   }
 
-  el.typeChoices.innerHTML = PRODUCT_TYPES.map((type) => `
+  let availableTypes = PRODUCT_TYPES;
+
+  if (product.shirtMode === 'basic') {
+    availableTypes = PRODUCT_TYPES.filter((type) => type.key === 'basic');
+    BC.selectedVariant.type = 'basic';
+  }
+
+  if (product.shirtMode === 'oversize') {
+    availableTypes = PRODUCT_TYPES.filter((type) => type.key === 'oversize');
+    BC.selectedVariant.type = 'oversize';
+  }
+
+  if (product.shirtMode === 'both') {
+    availableTypes = PRODUCT_TYPES;
+    if (!['basic', 'oversize'].includes(BC.selectedVariant.type)) {
+      BC.selectedVariant.type = 'basic';
+    }
+  }
+
+  el.typeChoices.innerHTML = availableTypes.map((type) => `
     <button class="choice ${BC.selectedVariant.type === type.key ? 'active' : ''}" type="button" data-type="${type.key}">
       ${type.label}
     </button>
@@ -789,7 +955,7 @@ function renderTypeChoices(product) {
       BC.selectedVariant.type = btn.dataset.type;
 
       if (BC.selectedVariant.type === 'oversize' && BC.selectedVariant.size === 'XS') {
-        BC.selectedVariant.size = 'M';
+        BC.selectedVariant.size = 'S';
       }
 
       renderModal();
@@ -802,7 +968,11 @@ function renderSizeChoices(product) {
 
   const sizes = Array.isArray(product.sizes) && product.sizes.length
     ? product.sizes
-    : (product.category === 'extras' ? ['20oz'] : (product.category === 'hoodies' ? HOODIE_SIZES : SHIRT_SIZES));
+    : (product.category === 'extras' ? TERMO_SIZES : (product.category === 'hoodies' ? HOODIE_SIZES : SHIRT_SIZES));
+
+  if (!sizes.includes(BC.selectedVariant.size)) {
+    BC.selectedVariant.size = sizes[0] || '';
+  }
 
   el.sizeChoices.innerHTML = sizes.map((size) => {
     const disabled = product.category === 'catalog' && BC.selectedVariant.type === 'oversize' && size === 'XS';
@@ -904,22 +1074,24 @@ function getSelectedUnitPrice() {
   if (!product) return 0;
 
   if (product.category === 'hoodies') {
-    return HOODIE_SIZE_PRICES[BC.selectedVariant.size] || Number(product.price || 29.99);
+    return HOODIE_SIZE_PRICES[BC.selectedVariant.size] || Number(product.price || 28.99);
   }
 
   if (product.category === 'extras') {
-    return Number(product.price || 12.99);
+    return Number(product.price || 14.99);
   }
 
   if (BC.selectedVariant.type === 'oversize') {
     if (BC.selectedVariant.size === 'XL') return 22.99;
     if (BC.selectedVariant.size === '2XL') return 23.99;
     if (BC.selectedVariant.size === '3XL') return 28.99;
-    return 19.99;
+
+    return Number(product.priceOversize || 19.99);
   }
 
-  let price = 16.99;
+  let price = Number(product.priceBasic || 16.99);
 
+  if (BC.selectedVariant.size === 'XL') price = 22.99;
   if (BC.selectedVariant.size === '2XL') price = 23.99;
   if (BC.selectedVariant.size === '3XL') price = 28.99;
 
@@ -1032,11 +1204,25 @@ function sendProductQuickWhatsApp(product) {
     title: product.title,
     anime: product.anime,
     category: product.category,
-    type: product.category === 'hoodies' ? 'hoodie' : (product.category === 'extras' ? 'termo' : 'basic'),
-    size: product.category === 'extras' ? (product.sizes?.[0] || '20oz') : 'Por confirmar',
-    color: product.category === 'extras' ? (getAvailableColors(product)[0]?.name || 'Por confirmar') : 'Por confirmar',
+    type: product.category === 'hoodies'
+      ? 'hoodie'
+      : product.category === 'extras'
+        ? (product.customDesign ? 'personalizado' : 'termo')
+        : (product.shirtMode === 'oversize' ? 'oversize' : 'basic'),
+    size: product.category === 'extras'
+      ? (product.capacity || product.sizes?.[0] || '20oz')
+      : 'Por confirmar',
+    color: product.category === 'extras'
+      ? (getAvailableColors(product)[0]?.name || 'Por confirmar')
+      : 'Por confirmar',
     qty: 1,
-    unitPrice: product.category === 'hoodies' ? 29.99 : (product.category === 'extras' ? Number(product.price || 12.99) : 16.99),
+    unitPrice: product.category === 'hoodies'
+      ? Number(product.price || 28.99)
+      : product.category === 'extras'
+        ? Number(product.price || 14.99)
+        : product.shirtMode === 'oversize'
+          ? Number(product.priceOversize || 19.99)
+          : Number(product.priceBasic || 16.99),
   };
 
   openWhatsApp(buildWhatsAppMessage([item]));
@@ -1050,7 +1236,7 @@ function sendCartToWhatsApp() {
 
 function buildWhatsAppMessage(items) {
   const lines = items.map((item, index) => {
-    const category = item.category === 'hoodies' ? 'Hoodie' : item.category === 'extras' ? 'Extra' : 'Camiseta';
+    const category = item.category === 'hoodies' ? 'Hoodie' : item.category === 'extras' ? 'Termos' : 'Camiseta';
 
     return `${index + 1}. ${item.title} | ${category} | ${item.type} | Talla: ${item.size} | Color: ${item.color} | Cant: ${item.qty} | ${MONEY.format(item.unitPrice * item.qty)}`;
   });
