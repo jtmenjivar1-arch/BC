@@ -86,80 +86,276 @@ const adminState = {
   selectedId: null
 };
 
-function fileToDataURL(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+function normalizeAdminList(value) {
+  if (!value) return [];
+
+  if (Array.isArray(value)) {
+    return value.map(item => String(item).trim()).filter(Boolean);
+  }
+
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) {
+        return parsed.map(item => String(item).trim()).filter(Boolean);
+      }
+    } catch (_) {}
+
+    return value.split(',').map(item => item.trim()).filter(Boolean);
+  }
+
+  return [];
+}
+
+function listToInput(value) {
+  return normalizeAdminList(value).join(',');
+}
+
+function normalizeCategory(value) {
+  const raw = String(value || '').trim().toLowerCase();
+
+  if (raw === 'hoodie' || raw === 'hoodies' || raw === 'sudadera' || raw === 'sudaderas') return 'hoodies';
+  if (raw === 'extra' || raw === 'extras' || raw === 'termo' || raw === 'termos' || raw === 'accesorio' || raw === 'accesorios') return 'extras';
+
+  return 'catalog';
+}
+
+function categoryLabel(category) {
+  const value = normalizeCategory(category);
+
+  if (value === 'hoodies') return 'Hoodie';
+  if (value === 'extras') return 'Extra';
+
+  return 'Camisa';
+}
+
+function defaultProductByCategory(category) {
+  const type = normalizeCategory(category);
+
+  if (type === 'hoodies') {
+    return {
+      price: 29.99,
+      colors: ['Negro'],
+      sizes: ['S', 'M', 'L', 'XL', '2XL'],
+      anime: 'BlackCat Collection'
+    };
+  }
+
+  if (type === 'extras') {
+    return {
+      price: 14.99,
+      colors: ['Negro', 'Blanco'],
+      sizes: ['20oz'],
+      anime: 'Termos'
+    };
+  }
+
+  return {
+    price: 16.99,
+    colors: ['Negro', 'Blanco', 'Beige', 'Gris'],
+    sizes: ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'],
+    anime: ''
+  };
 }
 
 function ensureSelection() {
   if (!adminState.data.products.length) adminState.selectedId = null;
-  if (!adminState.selectedId && adminState.data.products.length) adminState.selectedId = adminState.data.products[0].id;
+
+  if (!adminState.selectedId && adminState.data.products.length) {
+    adminState.selectedId = adminState.data.products[0].id;
+  }
 }
 
 function selectedProduct() {
-  return adminState.data.products.find(p => p.id === adminState.selectedId) || null;
+  return adminState.data.products.find(p => String(p.id) === String(adminState.selectedId)) || null;
+}
+
+function setValue(id, value) {
+  const input = document.getElementById(id);
+  if (input) input.value = value ?? '';
+}
+
+function getValue(id) {
+  return document.getElementById(id)?.value?.trim() || '';
+}
+
+function nextOrderIndex() {
+  return Math.max(0, ...adminState.data.products.map(p => Number(p.orderIndex || 0) || 0)) + 1;
+}
+
+function escapeAdminHTML(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function getSelectedPillValues(containerId, attrName) {
+  const container = document.getElementById(containerId);
+  if (!container) return [];
+
+  return Array.from(container.querySelectorAll(`button[${attrName}].active`))
+    .map(btn => btn.getAttribute(attrName))
+    .filter(Boolean);
+}
+
+function setActivePillsFromInput(containerId, attrName, inputId) {
+  const container = document.getElementById(containerId);
+  const inputValue = getValue(inputId);
+
+  if (!container) return;
+
+  const selected = normalizeAdminList(inputValue).map(item => item.toLowerCase());
+
+  container.querySelectorAll(`button[${attrName}]`).forEach(btn => {
+    const value = String(btn.getAttribute(attrName) || '').toLowerCase();
+    btn.classList.toggle('active', selected.includes(value));
+  });
+}
+
+function syncColorsFromPills() {
+  const selected = getSelectedPillValues('colorPills', 'data-color-option');
+  setValue('productColors', selected.join(','));
+  readFormsToState();
+}
+
+function syncSizesFromPills() {
+  const selected = getSelectedPillValues('sizePills', 'data-size-option');
+  setValue('productSizes', selected.join(','));
+  readFormsToState();
+}
+
+function bindOptionPills() {
+  document.querySelectorAll('#colorPills [data-color-option]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      btn.classList.toggle('active');
+      syncColorsFromPills();
+    });
+  });
+
+  document.querySelectorAll('#sizePills [data-size-option]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      btn.classList.toggle('active');
+      syncSizesFromPills();
+    });
+  });
+
+  document.getElementById('productColors')?.addEventListener('input', () => {
+    setActivePillsFromInput('colorPills', 'data-color-option', 'productColors');
+  });
+
+  document.getElementById('productSizes')?.addEventListener('input', () => {
+    setActivePillsFromInput('sizePills', 'data-size-option', 'productSizes');
+  });
 }
 
 function renderProductList() {
   ensureSelection();
+
   const wrap = document.getElementById('productList');
-  const list = [...adminState.data.products].sort((a, b) => a.title.localeCompare(b.title));
+  if (!wrap) return;
+
+  const list = [...adminState.data.products].sort((a, b) => {
+    const orderA = Number(a.orderIndex || 0);
+    const orderB = Number(b.orderIndex || 0);
+
+    if (orderA !== orderB) return orderA - orderB;
+
+    return String(a.title || '').localeCompare(String(b.title || ''));
+  });
 
   wrap.innerHTML = list.map(p => `
-    <button class="admin-item ${p.id === adminState.selectedId ? 'active' : ''}" data-id="${p.id}">
-      <strong>${p.title}</strong><br>
-      <span class="helper">${p.character} · ${p.anime}</span>
+    <button class="admin-item ${String(p.id) === String(adminState.selectedId) ? 'active' : ''}" data-id="${p.id}">
+      <strong>${escapeAdminHTML(p.title || 'Sin título')}</strong><br>
+      <span class="helper">
+        ${escapeAdminHTML(categoryLabel(p.category))}
+        ${p.character ? ' · ' + escapeAdminHTML(p.character) : ''}
+        ${p.anime ? ' · ' + escapeAdminHTML(p.anime) : ''}
+      </span>
     </button>
   `).join('');
 
-  wrap.querySelectorAll('[data-id]').forEach(btn => btn.addEventListener('click', () => {
-    adminState.selectedId = Number(btn.dataset.id);
-    renderAll();
-  }));
+  wrap.querySelectorAll('[data-id]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      adminState.selectedId = btn.dataset.id;
+      renderAll();
+    });
+  });
 }
 
 function bindHero() {
   const h = adminState.data.hero;
-  document.getElementById('heroPrefix').value = h.titlePrefix;
-  document.getElementById('heroAccent').value = h.titleAccent;
-  document.getElementById('heroSubtitle').value = h.subtitle;
-  document.getElementById('heroBadge1').value = h.badges[0] || '';
-  document.getElementById('heroBadge2').value = h.badges[1] || '';
-  document.getElementById('heroBadge3').value = h.badges[2] || '';
+
+  setValue('heroPrefix', h.titlePrefix);
+  setValue('heroAccent', h.titleAccent);
+  setValue('heroSubtitle', h.subtitle);
+  setValue('heroBadge1', h.badges[0] || '');
+  setValue('heroBadge2', h.badges[1] || '');
+  setValue('heroBadge3', h.badges[2] || '');
 }
 
 function bindContacts() {
   const c = adminState.data.contacts;
-  document.getElementById('contactWhatsApp').value = c.whatsapp;
-  document.getElementById('contactInstagram').value = c.instagram;
-  document.getElementById('contactTikTok').value = c.tiktok;
-  document.getElementById('contactEmail').value = c.email;
+
+  setValue('contactWhatsApp', c.whatsapp);
+  setValue('contactInstagram', c.instagram);
+  setValue('contactTikTok', c.tiktok);
+  setValue('contactEmail', c.email);
 }
 
 function bindProductEditor() {
   const p = selectedProduct();
   const disabled = !p;
 
-  ['productTitle', 'productCharacter', 'productAnime', 'productBadge', 'duplicateProduct', 'deleteProduct', 'productImageInput'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.disabled = disabled;
+  [
+    'productTitle',
+    'productCharacter',
+    'productAnime',
+    'productCategory',
+    'productBadge',
+    'productPrice',
+    'productOrder',
+    'productColors',
+    'productSizes',
+    'productActive',
+    'duplicateProduct',
+    'deleteProduct',
+    'productImageInput'
+  ].forEach(id => {
+    const input = document.getElementById(id);
+    if (input) input.disabled = disabled;
+  });
+
+  document.querySelectorAll('#colorPills button, #sizePills button').forEach(btn => {
+    btn.disabled = disabled;
   });
 
   const preview = document.getElementById('productPreview');
+
   if (!p) {
     if (preview) preview.src = '';
+    setActivePillsFromInput('colorPills', 'data-color-option', 'productColors');
+    setActivePillsFromInput('sizePills', 'data-size-option', 'productSizes');
     return;
   }
 
   if (preview) preview.src = p.image || '';
-  document.getElementById('productTitle').value = p.title;
-  document.getElementById('productCharacter').value = p.character;
-  document.getElementById('productAnime').value = p.anime;
-  document.getElementById('productBadge').value = p.badge;
+
+  setValue('productTitle', p.title || '');
+  setValue('productCharacter', p.character || '');
+  setValue('productAnime', p.anime || '');
+  setValue('productCategory', normalizeCategory(p.category || 'catalog'));
+  setValue('productBadge', p.badge || 'NEW');
+  setValue('productPrice', Number(p.price || 0) || '');
+  setValue('productOrder', Number(p.orderIndex || 0) || '');
+  setValue('productColors', listToInput(p.colors));
+  setValue('productSizes', listToInput(p.sizes));
+  setValue('productActive', p.active === false ? 'false' : 'true');
+
+  setActivePillsFromInput('colorPills', 'data-color-option', 'productColors');
+  setActivePillsFromInput('sizePills', 'data-size-option', 'productSizes');
 }
 
 function renderAll() {
@@ -171,32 +367,37 @@ function renderAll() {
 
 function readFormsToState() {
   const hero = adminState.data.hero;
-  hero.titlePrefix = document.getElementById('heroPrefix').value.trim() || 'BLACK';
-  hero.titleAccent = document.getElementById('heroAccent').value.trim() || 'CAT';
-  hero.subtitle = document.getElementById('heroSubtitle').value.trim();
+
+  hero.titlePrefix = getValue('heroPrefix') || 'BLACK';
+  hero.titleAccent = getValue('heroAccent') || 'CAT';
+  hero.subtitle = getValue('heroSubtitle');
   hero.badges = [
-    document.getElementById('heroBadge1').value.trim(),
-    document.getElementById('heroBadge2').value.trim(),
-    document.getElementById('heroBadge3').value.trim()
+    getValue('heroBadge1'),
+    getValue('heroBadge2'),
+    getValue('heroBadge3')
   ];
 
   const c = adminState.data.contacts;
-  c.whatsapp = document.getElementById('contactWhatsApp').value.trim();
-  c.instagram = document.getElementById('contactInstagram').value.trim();
-  c.tiktok = document.getElementById('contactTikTok').value.trim();
-  c.email = document.getElementById('contactEmail').value.trim();
+
+  c.whatsapp = getValue('contactWhatsApp');
+  c.instagram = getValue('contactInstagram');
+  c.tiktok = getValue('contactTikTok');
+  c.email = getValue('contactEmail');
 
   const p = selectedProduct();
-  if (p) {
-    p.title = document.getElementById('productTitle').value.trim();
-    p.character = document.getElementById('productCharacter').value.trim();
-    p.anime = document.getElementById('productAnime').value.trim();
-    p.badge = document.getElementById('productBadge').value.trim();
-  }
-}
 
-function nextId() {
-  return Math.max(0, ...adminState.data.products.map(p => Number(p.id) || 0)) + 1;
+  if (p) {
+    p.title = getValue('productTitle');
+    p.character = getValue('productCharacter');
+    p.anime = getValue('productAnime');
+    p.category = normalizeCategory(getValue('productCategory') || 'catalog');
+    p.badge = getValue('productBadge') || 'NEW';
+    p.price = Number(getValue('productPrice') || 0);
+    p.orderIndex = Number(getValue('productOrder') || p.orderIndex || 1);
+    p.colors = normalizeAdminList(getValue('productColors'));
+    p.sizes = normalizeAdminList(getValue('productSizes'));
+    p.active = getValue('productActive') !== 'false';
+  }
 }
 
 document.getElementById('addProduct')?.addEventListener('click', async () => {
@@ -207,14 +408,20 @@ document.getElementById('addProduct')?.addEventListener('click', async () => {
     return;
   }
 
-  const nextOrder = (adminState.data.products?.length || 0) + 1;
+  const category = 'catalog';
+  const defaults = defaultProductByCategory(category);
+  const nextOrder = nextOrderIndex();
 
   const payload = {
     title: 'Nuevo producto',
     character: '',
-    anime: '',
-    badge: 'TOP',
+    anime: defaults.anime,
+    category,
+    badge: 'NEW',
     image_url: '',
+    price: defaults.price,
+    colors: defaults.colors,
+    sizes: defaults.sizes,
     active: true,
     order_index: nextOrder
   };
@@ -244,18 +451,24 @@ document.getElementById('duplicateProduct')?.addEventListener('click', async () 
     return;
   }
 
+  readFormsToState();
+
   const p = selectedProduct();
   if (!p) return;
 
-  const nextOrder = (adminState.data.products?.length || 0) + 1;
+  const nextOrder = nextOrderIndex();
 
   const payload = {
     title: `${p.title || 'Producto'} copia`,
     character: p.character || '',
     anime: p.anime || '',
-    badge: p.badge || 'TOP',
+    category: normalizeCategory(p.category || 'catalog'),
+    badge: p.badge || 'NEW',
     image_url: p.image || '',
-    active: true,
+    price: Number(p.price || 0),
+    colors: normalizeAdminList(p.colors),
+    sizes: normalizeAdminList(p.sizes),
+    active: p.active !== false,
     order_index: nextOrder
   };
 
@@ -321,10 +534,13 @@ document.getElementById('productImageInput')?.addEventListener('change', async e
   const file = e.target.files?.[0];
   if (!file) return;
 
-  const url = await uploadImageToSupabase(file, 'productos');
+  const p = selectedProduct();
+  const category = p?.category || 'catalog';
+  const folder = category === 'hoodies' ? 'productos/hoodies' : category === 'extras' ? 'productos/extras' : 'productos/camisas';
+
+  const url = await uploadImageToSupabase(file, folder);
   if (!url) return;
 
-  const p = selectedProduct();
   if (!p) return;
 
   p.image = url;
@@ -336,6 +552,11 @@ document.getElementById('saveAll')?.addEventListener('click', async () => {
 });
 
 document.getElementById('resetAll')?.addEventListener('click', () => {
+  if (typeof resetSiteData !== 'function') {
+    alert('No se encontró la base local para restaurar.');
+    return;
+  }
+
   adminState.data = resetSiteData();
   adminState.selectedId = adminState.data.products[0]?.id || null;
   renderAll();
@@ -344,12 +565,15 @@ document.getElementById('resetAll')?.addEventListener('click', () => {
 
 document.getElementById('exportJson')?.addEventListener('click', () => {
   readFormsToState();
+
   const blob = new Blob([JSON.stringify(adminState.data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
+
   a.href = url;
   a.download = 'blackcat-admin-backup.json';
   a.click();
+
   URL.revokeObjectURL(url);
 });
 
@@ -358,19 +582,91 @@ document.getElementById('importJson')?.addEventListener('change', async e => {
   if (!file) return;
 
   const text = await file.text();
-  adminState.data = normalizeSiteData(JSON.parse(text));
+  const parsed = JSON.parse(text);
+
+  if (typeof normalizeSiteData === 'function') {
+    adminState.data = normalizeSiteData(parsed);
+  } else {
+    adminState.data = parsed;
+  }
+
   adminState.selectedId = adminState.data.products[0]?.id || null;
   renderAll();
 });
 
 [
-  'heroPrefix', 'heroAccent', 'heroSubtitle', 'heroBadge1', 'heroBadge2', 'heroBadge3',
-  'contactWhatsApp', 'contactInstagram', 'contactTikTok', 'contactEmail',
-  'productTitle', 'productCharacter', 'productAnime', 'productBadge'
+  'heroPrefix',
+  'heroAccent',
+  'heroSubtitle',
+  'heroBadge1',
+  'heroBadge2',
+  'heroBadge3',
+  'contactWhatsApp',
+  'contactInstagram',
+  'contactTikTok',
+  'contactEmail',
+  'productTitle',
+  'productCharacter',
+  'productAnime',
+  'productCategory',
+  'productBadge',
+  'productPrice',
+  'productOrder',
+  'productColors',
+  'productSizes',
+  'productActive'
 ].forEach(id => {
   document.getElementById(id)?.addEventListener('input', () => {
     readFormsToState();
+
+    if (id === 'productColors') {
+      setActivePillsFromInput('colorPills', 'data-color-option', 'productColors');
+    }
+
+    if (id === 'productSizes') {
+      setActivePillsFromInput('sizePills', 'data-size-option', 'productSizes');
+    }
   });
+
+  document.getElementById(id)?.addEventListener('change', () => {
+    readFormsToState();
+
+    if (id === 'productColors') {
+      setActivePillsFromInput('colorPills', 'data-color-option', 'productColors');
+    }
+
+    if (id === 'productSizes') {
+      setActivePillsFromInput('sizePills', 'data-size-option', 'productSizes');
+    }
+  });
+});
+
+document.getElementById('productCategory')?.addEventListener('change', () => {
+  const p = selectedProduct();
+  if (!p) return;
+
+  const nextCategory = normalizeCategory(getValue('productCategory'));
+  const defaults = defaultProductByCategory(nextCategory);
+
+  p.category = nextCategory;
+
+  if (!getValue('productPrice') || Number(getValue('productPrice')) === 0) {
+    p.price = defaults.price;
+  }
+
+  if (!getValue('productColors')) {
+    p.colors = defaults.colors;
+  }
+
+  if (!getValue('productSizes')) {
+    p.sizes = defaults.sizes;
+  }
+
+  if (!getValue('productAnime')) {
+    p.anime = defaults.anime;
+  }
+
+  bindProductEditor();
 });
 
 async function loadAdminFromSupabase() {
@@ -421,8 +717,14 @@ async function loadAdminFromSupabase() {
         title: p.title || '',
         character: p.character || '',
         anime: p.anime || '',
-        badge: p.badge || 'TOP',
-        image: p.image_url || ''
+        category: normalizeCategory(p.category || 'catalog'),
+        badge: p.badge || 'NEW',
+        image: p.image_url || '',
+        price: Number(p.price || 0),
+        colors: normalizeAdminList(p.colors),
+        sizes: normalizeAdminList(p.sizes),
+        active: p.active === false ? false : true,
+        orderIndex: Number(p.order_index || 0)
       }));
     }
 
@@ -473,14 +775,20 @@ async function saveAdminToSupabase() {
     }
 
     for (const [index, product] of adminState.data.products.entries()) {
+      const orderIndex = Number(product.orderIndex || index + 1);
+
       const payload = {
         title: product.title || '',
         character: product.character || '',
         anime: product.anime || '',
-        badge: product.badge || 'TOP',
+        category: normalizeCategory(product.category || 'catalog'),
+        badge: product.badge || 'NEW',
         image_url: product.image || '',
-        active: true,
-        order_index: index + 1
+        price: Number(product.price || 0),
+        colors: normalizeAdminList(product.colors),
+        sizes: normalizeAdminList(product.sizes),
+        active: product.active === false ? false : true,
+        order_index: orderIndex || index + 1
       };
 
       if (product.id && Number.isInteger(Number(product.id))) {
@@ -522,8 +830,8 @@ async function saveAdminToSupabase() {
 }
 
 async function loginSupabaseAdmin() {
-  const email = document.getElementById('sbEmail')?.value.trim();
-  const password = document.getElementById('sbPassword')?.value.trim();
+  const email = getValue('sbEmail');
+  const password = getValue('sbPassword');
 
   if (!email || !password) {
     alert('Ingresa correo y contraseña.');
@@ -543,11 +851,8 @@ async function loginSupabaseAdmin() {
     return;
   }
 
-  const emailInput = document.getElementById('sbEmail');
-  const passwordInput = document.getElementById('sbPassword');
-
-  if (emailInput) emailInput.value = '';
-  if (passwordInput) passwordInput.value = '';
+  setValue('sbEmail', '');
+  setValue('sbPassword', '');
 
   await syncSupabaseLoginVisibility();
 
@@ -583,7 +888,9 @@ document.getElementById('sbLogoutBtn')?.addEventListener('click', async () => {
 
 async function uploadImageToSupabase(file, folder = 'productos') {
   const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-  const fileName = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const safeExt = ext.replace(/[^a-z0-9]/g, '') || 'jpg';
+  const cleanFolder = String(folder || 'productos').replace(/^\/+|\/+$/g, '');
+  const fileName = `${cleanFolder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${safeExt}`;
 
   const { error: uploadError } = await supabaseClient.storage
     .from('catalogo')
@@ -606,5 +913,6 @@ async function uploadImageToSupabase(file, folder = 'productos') {
 
 requireAdminAccess();
 bindPasswordActions();
+bindOptionPills();
 syncSupabaseLoginVisibility();
 loadAdminFromSupabase();
