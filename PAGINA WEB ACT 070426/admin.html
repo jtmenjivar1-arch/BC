@@ -549,6 +549,8 @@
 </head>
 
 <body class="admin-locked">
+  <div id="toastStatus" class="toast-status" aria-live="polite"></div>
+
   <div id="adminLock" class="lock">
     <div class="lock-card">
       <h2>BlackCat Admin</h2>
@@ -727,6 +729,11 @@
                 <option value="basic">Solo Basic</option>
                 <option value="oversize">Solo Oversize</option>
                 <option value="both">Basic + Oversize</option>
+                <option value="croptop">Solo Crop Top</option>
+                <option value="boxyfit">Solo Boxy Fit</option>
+                <option value="basic_boxyfit">Basic + Boxy Fit</option>
+                <option value="oversize_boxyfit">Oversize + Boxy Fit</option>
+                <option value="basic_oversize_boxyfit">Basic + Oversize + Boxy Fit</option>
               </select>
             </div>
 
@@ -738,6 +745,21 @@
             <div class="field" id="priceOversizeWrap">
               <label for="priceOversize">Precio Oversize</label>
               <input id="priceOversize" type="number" step="0.01" value="19.99" />
+            </div>
+
+            <div class="field" id="priceCropTopWrap">
+              <label for="priceCropTop">Precio Crop Top</label>
+              <input id="priceCropTop" type="number" step="0.01" value="12.99" />
+            </div>
+
+            <div class="field" id="priceBoxyFitWrap">
+              <label for="priceBoxyFit">Precio Boxy Fit S - L</label>
+              <input id="priceBoxyFit" type="number" step="0.01" value="22.00" />
+            </div>
+
+            <div class="field" id="priceBoxyFitPlusWrap">
+              <label for="priceBoxyFitPlus">Precio Boxy Fit XL - 2XL</label>
+              <input id="priceBoxyFitPlus" type="number" step="0.01" value="25.00" />
             </div>
           </div>
 
@@ -752,7 +774,7 @@
               <span class="chip active" data-value="2XL">2XL</span>
               <span class="chip active" data-value="3XL">3XL</span>
             </div>
-            <span class="hint">Si seleccionas Solo Oversize, puedes desactivar XS manualmente. En la web, XS no se mostrará para oversize.</span>
+            <span class="hint">Crop Top queda como modalidad individual. Boxy Fit puede combinarse con Basic y/u Oversize. Precios Boxy Fit: S-L $22.00 y XL-2XL $25.00.</span>
           </div>
         </div>
 
@@ -935,8 +957,14 @@
       shirtMode: $("shirtMode"),
       priceBasic: $("priceBasic"),
       priceOversize: $("priceOversize"),
+      priceCropTop: $("priceCropTop"),
+      priceBoxyFit: $("priceBoxyFit"),
+      priceBoxyFitPlus: $("priceBoxyFitPlus"),
       priceBasicWrap: $("priceBasicWrap"),
       priceOversizeWrap: $("priceOversizeWrap"),
+      priceCropTopWrap: $("priceCropTopWrap"),
+      priceBoxyFitWrap: $("priceBoxyFitWrap"),
+      priceBoxyFitPlusWrap: $("priceBoxyFitPlusWrap"),
 
       hoodieSection: $("hoodieSection"),
       hoodiePrice: $("hoodiePrice"),
@@ -1096,6 +1124,27 @@
       showToast("Hero actualizado correctamente en Supabase.", "ok");
     }
 
+    function shirtModeHas(mode, type) {
+      const value = String(mode || "");
+      if (type === "basic") return value === "basic" || value === "both" || value === "basic_boxyfit" || value === "basic_oversize_boxyfit";
+      if (type === "oversize") return value === "oversize" || value === "both" || value === "oversize_boxyfit" || value === "basic_oversize_boxyfit";
+      if (type === "boxyfit") return value === "boxyfit" || value === "basic_boxyfit" || value === "oversize_boxyfit" || value === "basic_oversize_boxyfit";
+      if (type === "croptop") return value === "croptop";
+      return false;
+    }
+
+    function getDefaultSizesForShirtMode(mode) {
+      if (mode === "croptop") return ["S", "M", "L"];
+      if (mode === "boxyfit") return ["S", "M", "L", "XL", "2XL"];
+      if (mode === "oversize") return ["S", "M", "L", "XL", "2XL", "3XL"];
+      return ["XS", "S", "M", "L", "XL", "2XL", "3XL"];
+    }
+
+    function applyDefaultSizesForShirtMode(mode) {
+      if (!els.sizeChips) return;
+      setActiveChipValues(els.sizeChips, getDefaultSizesForShirtMode(mode));
+    }
+
     function updateProductTypeSections() {
       const category = els.category.value;
 
@@ -1123,34 +1172,60 @@
     function updateShirtModeFields() {
       const mode = els.shirtMode?.value || "basic";
 
-      if (!els.priceBasicWrap || !els.priceOversizeWrap) return;
+      const hasBasic = shirtModeHas(mode, "basic");
+      const hasOversize = shirtModeHas(mode, "oversize");
+      const hasCropTop = shirtModeHas(mode, "croptop");
+      const hasBoxyFit = shirtModeHas(mode, "boxyfit");
 
-      els.priceBasicWrap.classList.toggle("hidden", mode === "oversize");
-      els.priceOversizeWrap.classList.toggle("hidden", mode === "basic");
+      els.priceBasicWrap?.classList.toggle("hidden", !hasBasic);
+      els.priceOversizeWrap?.classList.toggle("hidden", !hasOversize);
+      els.priceCropTopWrap?.classList.toggle("hidden", !hasCropTop);
+      els.priceBoxyFitWrap?.classList.toggle("hidden", !hasBoxyFit);
+      els.priceBoxyFitPlusWrap?.classList.toggle("hidden", !hasBoxyFit);
 
-      if (mode === "basic") {
-        els.priceBasic.value = els.priceBasic.value || "16.99";
-        els.generalPrice.value = els.priceBasic.value;
-      }
+      els.priceBasic.value = els.priceBasic.value || "16.99";
+      els.priceOversize.value = els.priceOversize.value || "19.99";
+      els.priceCropTop.value = els.priceCropTop.value || "12.99";
+      els.priceBoxyFit.value = els.priceBoxyFit.value || "22.00";
+      els.priceBoxyFitPlus.value = els.priceBoxyFitPlus.value || "25.00";
 
-      if (mode === "oversize") {
-        els.priceOversize.value = els.priceOversize.value || "19.99";
-        els.generalPrice.value = els.priceOversize.value;
-        els.sizeChips?.querySelector('[data-value="XS"]')?.classList.remove("active");
-      }
-
-      if (mode === "both") {
-        els.priceBasic.value = els.priceBasic.value || "16.99";
-        els.priceOversize.value = els.priceOversize.value || "19.99";
-        els.generalPrice.value = els.priceBasic.value;
+      if (mode === "croptop") {
+        els.generalPrice.value = Number(els.priceCropTop.value || 12.99).toFixed(2);
+      } else if (mode === "boxyfit") {
+        els.generalPrice.value = Number(els.priceBoxyFit.value || 22).toFixed(2);
+      } else if (hasBasic) {
+        els.generalPrice.value = Number(els.priceBasic.value || 16.99).toFixed(2);
+      } else if (hasOversize) {
+        els.generalPrice.value = Number(els.priceOversize.value || 19.99).toFixed(2);
+      } else {
+        els.generalPrice.value = "16.99";
       }
     }
 
     function getCurrentShirtBasePrice() {
       const mode = els.shirtMode.value;
 
-      if (mode === "oversize") return Number(els.priceOversize.value || 19.99);
-      return Number(els.priceBasic.value || 16.99);
+      if (mode === "croptop") return Number(els.priceCropTop.value || 12.99);
+      if (mode === "boxyfit") return Number(els.priceBoxyFit.value || 22);
+      if (shirtModeHas(mode, "basic")) return Number(els.priceBasic.value || 16.99);
+      if (shirtModeHas(mode, "oversize")) return Number(els.priceOversize.value || 19.99);
+
+      return Number(els.generalPrice.value || 0);
+    }
+
+    function getReadableShirtMode(mode) {
+      const labels = {
+        basic: "Solo Basic",
+        oversize: "Solo Oversize",
+        both: "Basic + Oversize",
+        croptop: "Solo Crop Top",
+        boxyfit: "Solo Boxy Fit",
+        basic_boxyfit: "Basic + Boxy Fit",
+        oversize_boxyfit: "Oversize + Boxy Fit",
+        basic_oversize_boxyfit: "Basic + Oversize + Boxy Fit"
+      };
+
+      return labels[mode] || mode || "Camisa";
     }
 
     function updatePreview() {
@@ -1163,7 +1238,7 @@
       let meta = "";
 
       if (category === "camisa") {
-        meta = `Camisa · ${els.shirtMode.value} · desde $${getCurrentShirtBasePrice().toFixed(2)}`;
+        meta = `Camisa · ${getReadableShirtMode(els.shirtMode.value)} · desde $${getCurrentShirtBasePrice().toFixed(2)}`;
       }
 
       if (category === "hoodie") {
@@ -1199,6 +1274,9 @@
       els.shirtMode.value = "basic";
       els.priceBasic.value = "16.99";
       els.priceOversize.value = "19.99";
+      els.priceCropTop.value = "12.99";
+      els.priceBoxyFit.value = "22.00";
+      els.priceBoxyFitPlus.value = "25.00";
 
       els.hoodiePrice.value = "28.99";
       els.stock.value = "0";
@@ -1243,6 +1321,9 @@
       els.shirtMode.value = product.shirt_mode || "basic";
       els.priceBasic.value = product.price_basic ?? 16.99;
       els.priceOversize.value = product.price_oversize ?? 19.99;
+      els.priceCropTop.value = product.shirt_mode === "croptop" ? (product.price ?? 12.99) : 12.99;
+      els.priceBoxyFit.value = product.shirt_mode === "boxyfit" ? (product.price ?? 22.00) : 22.00;
+      els.priceBoxyFitPlus.value = product.product_type === "boxyfit" ? (product.price_oversize ?? 25.00) : 25.00;
 
       els.hoodiePrice.value = product.category === "hoodie" ? product.price ?? 28.99 : 28.99;
       els.stock.value = product.stock ?? 0;
@@ -1283,7 +1364,10 @@
       let sizes = [];
 
       if (category === "camisa") {
-        productType = els.shirtMode.value === "both" ? "camisa" : els.shirtMode.value;
+        const mode = els.shirtMode.value;
+        const isSingleMode = ["basic", "oversize", "croptop", "boxyfit"].includes(mode);
+
+        productType = isSingleMode ? mode : "camisa";
         price = getCurrentShirtBasePrice();
         sizes = getActiveChipValues(els.sizeChips);
       }
@@ -1314,8 +1398,20 @@
         product_type: productType,
         shirt_mode: category === "camisa" ? els.shirtMode.value : null,
         price,
-        price_basic: category === "camisa" ? Number(els.priceBasic.value || 16.99) : null,
-        price_oversize: category === "camisa" ? Number(els.priceOversize.value || 19.99) : null,
+        price_basic: category === "camisa"
+          ? (els.shirtMode.value === "croptop"
+            ? Number(els.priceCropTop.value || 12.99)
+            : els.shirtMode.value === "boxyfit"
+              ? Number(els.priceBoxyFit.value || 22.00)
+              : Number(els.priceBasic.value || 16.99))
+          : null,
+        price_oversize: category === "camisa"
+          ? (els.shirtMode.value === "boxyfit"
+            ? Number(els.priceBoxyFitPlus.value || 25.00)
+            : shirtModeHas(els.shirtMode.value, "oversize")
+              ? Number(els.priceOversize.value || 19.99)
+              : null)
+          : null,
         price_custom: category === "termo" && els.customDesign.value === "true" ? Number(els.termoPrice.value || 0) : 0,
         capacity: category === "termo" ? els.capacity.value : null,
         custom_design: category === "termo" ? els.customDesign.value === "true" : false,
@@ -1534,7 +1630,11 @@
       els.reloadHeroBtn?.addEventListener("click", loadHeroSettings);
 
       els.category.addEventListener("change", updateProductTypeSections);
-      els.shirtMode?.addEventListener("change", updateShirtModeFields);
+      els.shirtMode?.addEventListener("change", () => {
+        applyDefaultSizesForShirtMode(els.shirtMode.value);
+        updateShirtModeFields();
+        updatePreview();
+      });
 
       [
         els.title,
@@ -1544,7 +1644,10 @@
         els.capacity,
         els.customDesign,
         els.priceBasic,
-        els.priceOversize
+        els.priceOversize,
+        els.priceCropTop,
+        els.priceBoxyFit,
+        els.priceBoxyFitPlus
       ].forEach(input => {
         input.addEventListener("input", updatePreview);
         input.addEventListener("change", updatePreview);
