@@ -1,7 +1,7 @@
 'use strict';
 
 const BC = {
-  storageKey: 'blackcat_cart_v15',
+  storageKey: 'blackcat_cart_v16',
   defaultWhatsApp: '50361900185',
   defaultInstagram: 'blackcat.sivar',
   defaultTikTok: 'blackcat.sivar',
@@ -31,6 +31,8 @@ const MONEY = new Intl.NumberFormat('en-US', {
 const SERIES_IMAGES = {
   BlackCat: 'assets/logo-gato.png',
 };
+
+const FALLBACK_PRODUCT_IMAGE = 'assets/logo-gato.png';
 
 const HOODIE_WORDS = [
   'hoodie',
@@ -237,7 +239,7 @@ async function loadData() {
         BC.settings = normalizeSettings(settingsData);
       }
 
-      if (Array.isArray(productsData) && productsData.length) {
+      if (Array.isArray(productsData)) {
         BC.products = normalizeProducts(productsData);
       }
     } catch (error) {
@@ -246,6 +248,7 @@ async function loadData() {
   }
 
   BC.products = mergeSeedProducts(BC.products, normalizeProducts(LOCAL_SEED_PRODUCTS));
+  console.log('BlackCat productos cargados:', BC.products);
 }
 
 function mergeSeedProducts(baseProducts, seedProducts) {
@@ -294,7 +297,7 @@ function normalizeProducts(items) {
       const character = p.character || p.personaje || '';
       const anime = p.anime || p.serie || p.series || p.category_anime || 'BlackCat';
       const badge = p.badge || p.etiqueta || 'NEW';
-      const image = p.image_url || p.image || p.imagen || p.mockup || '';
+      const image = p.image_url || p.image || p.imagen || p.mockup || FALLBACK_PRODUCT_IMAGE;
 
       const rawCategory = [
         p.category,
@@ -391,7 +394,7 @@ function normalizeProducts(items) {
         sizes,
       };
     })
-    .filter((p) => p.active && p.image)
+    .filter((p) => p.active)
     .sort((a, b) => a.orderIndex - b.orderIndex);
 }
 
@@ -428,6 +431,20 @@ function normalizeMode(value) {
     .replace(/-/g, '_');
 }
 
+function getTypesFromShirtMode(mode) {
+  const normalizedMode = normalizeMode(mode || 'basic');
+
+  if (SHIRT_MODE_TYPES[normalizedMode]) {
+    return SHIRT_MODE_TYPES[normalizedMode];
+  }
+
+  if (['basic', 'oversize', 'croptop', 'boxyfit'].includes(normalizedMode)) {
+    return [normalizedMode];
+  }
+
+  return ['basic'];
+}
+
 function getDefaultSizesByShirtMode(mode) {
   const types = getTypesFromShirtMode(mode);
   const merged = [];
@@ -446,9 +463,11 @@ function getDefaultSizesByShirtMode(mode) {
 }
 
 function getBasePriceByShirtMode(mode, priceBasic = 16.99, priceOversize = 19.99) {
-  if (mode === 'croptop') return 12.99;
-  if (mode === 'boxyfit') return 22.0;
-  if (mode === 'oversize') return priceOversize || 19.99;
+  const normalizedMode = normalizeMode(mode);
+
+  if (normalizedMode === 'croptop') return 12.99;
+  if (normalizedMode === 'boxyfit') return 22.0;
+  if (normalizedMode === 'oversize') return priceOversize || 19.99;
 
   return priceBasic || 16.99;
 }
@@ -1152,6 +1171,7 @@ function getTypeLabel(type) {
 
   if (type === 'hoodie') return 'Hoodie';
   if (type === 'termo') return 'Termo';
+  if (type === 'personalizado') return 'Personalizado';
 
   return type || 'Producto';
 }
@@ -1189,7 +1209,11 @@ function getLowestShirtPrice(product) {
     });
   });
 
-  return Math.min(...prices.filter((price) => price > 0), Number(product.price || 16.99));
+  const validPrices = prices.filter((price) => Number.isFinite(price) && price > 0);
+
+  if (!validPrices.length) return Number(product.price || 16.99);
+
+  return Math.min(...validPrices);
 }
 
 function getUnitPriceForVariant(product, type, size) {
@@ -1335,7 +1359,7 @@ function renderTypeChoices(product) {
   if (product.category === 'extras') {
     const label = product.customDesign ? 'Personalizado' : 'Termo';
 
-    el.typeChoices.innerHTML = `<button class="choice active" type="button" data-type="termo">${escapeHTML(
+    el.typeChoices.innerHTML = `<button class="choice active" type="button" data-type="${product.customDesign ? 'personalizado' : 'termo'}">${escapeHTML(
       label
     )}</button>`;
 
