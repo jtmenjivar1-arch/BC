@@ -70,9 +70,13 @@ const SHIRT_MODE_TYPES = {
   croptop: ['croptop'],
 
   boxyfit: ['boxyfit'],
+  boxy_fit: ['boxyfit'],
   basic_boxyfit: ['basic', 'boxyfit'],
+  basic_boxy_fit: ['basic', 'boxyfit'],
   oversize_boxyfit: ['oversize', 'boxyfit'],
+  oversize_boxy_fit: ['oversize', 'boxyfit'],
   basic_oversize_boxyfit: ['basic', 'oversize', 'boxyfit'],
+  basic_oversize_boxy_fit: ['basic', 'oversize', 'boxyfit'],
 };
 
 const SHIRT_TYPE_SIZES = {
@@ -184,6 +188,7 @@ async function initBlackCat() {
   bindUI();
   bindSeriesDragScroll();
   initHeroSlider();
+  initNewsletterPopup();
   await loadData();
   applySettings();
   renderSeries();
@@ -319,25 +324,35 @@ function normalizeProducts(items) {
         rawCategory,
       });
 
-      const shirtMode = normalizeMode(
-        p.shirt_mode || p.shirtMode || p.type_options || p.product_type || p.productType || p.type || 'basic'
-      );
+      const adminTypes = getAdminTypesFromRawProduct(p);
+      const rawShirtMode =
+        p.shirt_mode ||
+        p.shirtMode ||
+        p.type_options ||
+        p.types ||
+        p.available_types ||
+        p.product_types ||
+        p.tipo_camisa ||
+        p.product_type ||
+        p.productType ||
+        p.type ||
+        'basic';
+
+      const shirtMode = adminTypes.length
+        ? getShirtModeFromTypes(adminTypes)
+        : normalizeMode(rawShirtMode || 'basic');
 
       const productType = normalizeMode(p.product_type || p.productType || '');
-      const modeTypes = getTypesFromShirtMode(shirtMode);
-      const adminPrice = Number(p.price || p.precio || p.price_general || p.precio_general || 0);
 
       const priceBasic = Number(
         p.price_basic ||
           p.priceBasic ||
-          (modeTypes.includes('basic') ? adminPrice : 0) ||
           (shirtMode === 'croptop' ? 12.99 : shirtMode === 'boxyfit' ? 22.0 : 16.99)
       );
 
       const priceOversize = Number(
         p.price_oversize ||
           p.priceOversize ||
-          (modeTypes.includes('oversize') ? adminPrice : 0) ||
           (shirtMode.includes('boxyfit') ? 25.0 : 19.99)
       );
 
@@ -361,7 +376,7 @@ function normalizeProducts(items) {
         sizes = capacity ? [capacity] : TERMO_SIZES;
       }
 
-      let price = Number(adminPrice || 0);
+      let price = Number(p.price || p.precio || 0);
 
       if (!price && category === 'catalog') {
         price = getBasePriceByShirtMode(shirtMode, priceBasic, priceOversize);
@@ -385,6 +400,7 @@ function normalizeProducts(items) {
         category,
         productType,
         shirtMode,
+        adminTypes,
         price,
         priceBasic,
         priceOversize,
@@ -433,14 +449,81 @@ function normalizeMode(value) {
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\+/g, '_')
-    .replace(/&/g, '_')
-    .replace(/-/g, '_')
+    .replace(/[+|,/]/g, '_')
     .replace(/\s+/g, '_')
-    .replace(/_+/g, '_')
-    .replace(/^_|_$/g, '')
+    .replace(/-/g, '_')
     .replace(/boxy_fit/g, 'boxyfit')
-    .replace(/crop_top/g, 'croptop');
+    .replace(/crop_top/g, 'croptop')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+function getAdminTypesFromRawProduct(product = {}) {
+  const sources = [
+    product.type_options,
+    product.types,
+    product.available_types,
+    product.product_types,
+    product.tipo_camisa,
+    product.shirt_mode,
+    product.shirtMode,
+    product.product_type,
+    product.productType,
+    product.type,
+  ];
+
+  const found = [];
+
+  const addFromValue = (value) => {
+    if (!value) return;
+
+    if (Array.isArray(value)) {
+      value.forEach(addFromValue);
+      return;
+    }
+
+    const raw = String(value || '').trim();
+
+    if (!raw) return;
+
+    try {
+      const parsed = JSON.parse(raw);
+
+      if (Array.isArray(parsed)) {
+        parsed.forEach(addFromValue);
+        return;
+      }
+    } catch (_) {}
+
+    const text = normalize(raw).replace(/[-_+|,/]/g, ' ');
+    const mode = normalizeMode(raw);
+
+    if (text.includes('basic') || text.includes('basica')) found.push('basic');
+    if (text.includes('oversize')) found.push('oversize');
+    if (text.includes('boxy')) found.push('boxyfit');
+    if (text.includes('crop')) found.push('croptop');
+
+    if (SHIRT_MODE_TYPES[mode]) found.push(...SHIRT_MODE_TYPES[mode]);
+    if (['basic', 'oversize', 'croptop', 'boxyfit'].includes(mode)) found.push(mode);
+  };
+
+  sources.forEach(addFromValue);
+
+  return [...new Set(found.filter((type) => ['basic', 'oversize', 'croptop', 'boxyfit'].includes(type)))];
+}
+
+function getShirtModeFromTypes(types) {
+  const list = Array.isArray(types) ? [...new Set(types)] : [];
+
+  if (list.includes('basic') && list.includes('oversize') && list.includes('boxyfit')) {
+    return 'basic_oversize_boxyfit';
+  }
+
+  if (list.includes('basic') && list.includes('boxyfit')) return 'basic_boxyfit';
+  if (list.includes('oversize') && list.includes('boxyfit')) return 'oversize_boxyfit';
+  if (list.includes('basic') && list.includes('oversize')) return 'both';
+
+  return list[0] || 'basic';
 }
 
 function getTypesFromShirtMode(mode) {
@@ -448,18 +531,6 @@ function getTypesFromShirtMode(mode) {
 
   if (SHIRT_MODE_TYPES[normalizedMode]) {
     return SHIRT_MODE_TYPES[normalizedMode];
-  }
-
-  const parsed = [];
-  const readable = normalizedMode.replace(/_/g, ' ');
-
-  if (readable.includes('basic')) parsed.push('basic');
-  if (readable.includes('oversize')) parsed.push('oversize');
-  if (readable.includes('crop')) parsed.push('croptop');
-  if (readable.includes('boxy')) parsed.push('boxyfit');
-
-  if (parsed.length) {
-    return [...new Set(parsed)];
   }
 
   if (['basic', 'oversize', 'croptop', 'boxyfit'].includes(normalizedMode)) {
@@ -488,18 +559,12 @@ function getDefaultSizesByShirtMode(mode) {
 
 function getBasePriceByShirtMode(mode, priceBasic = 16.99, priceOversize = 19.99) {
   const normalizedMode = normalizeMode(mode);
-  const types = getTypesFromShirtMode(normalizedMode);
 
-  if (normalizedMode === 'croptop') return Number(priceBasic || 12.99);
-  if (normalizedMode === 'boxyfit') return Number(priceBasic || 22.0);
-  if (normalizedMode === 'oversize') return Number(priceOversize || 19.99);
+  if (normalizedMode === 'croptop') return 12.99;
+  if (normalizedMode === 'boxyfit') return 22.0;
+  if (normalizedMode === 'oversize') return priceOversize || 19.99;
 
-  if (types.includes('basic')) return Number(priceBasic || 16.99);
-  if (types.includes('oversize')) return Number(priceOversize || 19.99);
-  if (types.includes('boxyfit')) return Number(priceBasic || 22.0);
-  if (types.includes('croptop')) return Number(priceBasic || 12.99);
-
-  return Number(priceBasic || 16.99);
+  return priceBasic || 16.99;
 }
 
 function detectProductCategory(product) {
@@ -764,6 +829,13 @@ function bindUI() {
   $('#bottomCartBtn')?.addEventListener('click', openCart);
   $('#cartClose')?.addEventListener('click', closePanels);
   $('#checkoutBtn')?.addEventListener('click', sendCartToWhatsApp);
+  $('#clubTrigger')?.addEventListener('click', () => {
+    localStorage.removeItem(BC_NEWSLETTER.leadKey);
+    localStorage.removeItem(BC_NEWSLETTER.dismissedKey);
+    document.getElementById('bcClubPopup')?.remove();
+    initNewsletterPopup();
+    setTimeout(() => document.getElementById('bcClubPopup')?.classList.add('show'), 30);
+  });
 
   el.backdrop?.addEventListener('click', closePanels);
 
@@ -1183,14 +1255,22 @@ function getTypesForProduct(product) {
   if (product.category === 'hoodies') return ['hoodie'];
   if (product.category === 'extras') return ['termo'];
 
+  if (Array.isArray(product.adminTypes) && product.adminTypes.length) {
+    return product.adminTypes;
+  }
+
+  const fromRaw = getAdminTypesFromRawProduct(product);
+
+  if (fromRaw.length) {
+    return fromRaw;
+  }
+
   const mode = normalizeMode(product.shirtMode || product.productType || 'basic');
 
   if (SHIRT_MODE_TYPES[mode]) return SHIRT_MODE_TYPES[mode];
 
-  const parsed = getTypesFromShirtMode(mode);
-
-  if (parsed.length) {
-    return parsed.filter((type) => ['basic', 'oversize', 'croptop', 'boxyfit'].includes(type));
+  if (['basic', 'oversize', 'croptop', 'boxyfit'].includes(mode)) {
+    return [mode];
   }
 
   return ['basic'];
@@ -1251,63 +1331,43 @@ function getLowestShirtPrice(product) {
 function getUnitPriceForVariant(product, type, size) {
   if (!product) return 0;
 
-  if (product.category === 'hoodies' || type === 'hoodie') {
-    return HOODIE_SIZE_PRICES[size] || Number(product.price || 28.99);
+  const selectedType = String(type || '').toLowerCase();
+  const selectedSize = String(size || '').toUpperCase();
+
+  // Hoodies: tabla independiente por talla.
+  if (product.category === 'hoodies' || selectedType === 'hoodie') {
+    return HOODIE_SIZE_PRICES[selectedSize] || Number(product.price || 28.99);
   }
 
-  if (product.category === 'extras' || type === 'termo' || type === 'personalizado') {
+  // Termos / extras: precio fijo por producto.
+  if (product.category === 'extras' || selectedType === 'termo' || selectedType === 'personalizado') {
     return Number(product.price || product.priceCustom || 14.99);
   }
 
-  const mode = normalizeMode(product.shirtMode || product.productType || 'basic');
-  const types = getTypesForProduct(product);
-  const basePrice = Number(product.price || 0);
-  const basicPrice = Number(product.priceBasic || 0);
-  const oversizePrice = Number(product.priceOversize || 0);
-
-  const hasAdminBase = Number.isFinite(basePrice) && basePrice > 0;
-  const isCombinedMode = types.length > 1;
-
-  if (type === 'basic') {
-    if (basicPrice > 0) return basicPrice;
-    if (hasAdminBase) return basePrice;
-
-    if (size === 'XL') return 22.99;
-    if (size === '2XL') return 23.99;
-    if (size === '3XL') return 28.99;
-
-    return 16.99;
+  // Basic BlackCat.
+  if (selectedType === 'basic') {
+    if (selectedSize === '2XL') return 19.99;
+    if (selectedSize === '3XL') return 25.99;
+    return 17.00;
   }
 
-  if (type === 'oversize') {
-    if (oversizePrice > 0) return oversizePrice;
-    if (hasAdminBase) return basePrice;
-
-    if (size === 'XL') return 22.99;
-    if (size === '2XL') return 23.99;
-    if (size === '3XL') return 28.99;
-
+  // Oversize BlackCat.
+  if (selectedType === 'oversize') {
+    if (selectedSize === 'XL') return 22.99;
+    if (selectedSize === '2XL') return 25.99;
+    if (selectedSize === '3XL') return 28.99;
     return 19.99;
   }
 
-  if (type === 'croptop') {
-    if (hasAdminBase) return basePrice;
-    if (basicPrice > 0) return basicPrice;
-    return 12.99;
+  // Boxy Fit BlackCat.
+  if (selectedType === 'boxyfit') {
+    if (selectedSize === 'XL' || selectedSize === '2XL') return 25.00;
+    return 22.00;
   }
 
-  if (type === 'boxyfit') {
-    /*
-      En combinaciones como Oversize + Boxy Fit, el admin guarda el precio principal
-      en product.price. Evitamos caer en priceBasic = 16.99 cuando Basic no está activo.
-    */
-    if (hasAdminBase) return basePrice;
-
-    if (size === 'XL' || size === '2XL') {
-      return oversizePrice || 25.0;
-    }
-
-    return basicPrice || 22.0;
+  // Crop Top.
+  if (selectedType === 'croptop') {
+    return Number(product.price || product.priceBasic || 12.99);
   }
 
   return Number(product.price || 0);
@@ -1316,8 +1376,6 @@ function getUnitPriceForVariant(product, type, size) {
 function openProduct(product) {
   BC.selectedProduct = product;
 
-  const productTypes = getTypesForProduct(product);
-
   const firstType =
     product.category === 'hoodies'
       ? 'hoodie'
@@ -1325,7 +1383,7 @@ function openProduct(product) {
         ? product.customDesign
           ? 'personalizado'
           : 'termo'
-        : productTypes[0] || 'basic';
+        : getTypesForProduct(product)[0] || 'basic';
 
   const sizes = getSizesForType(product, firstType);
 
@@ -2098,6 +2156,109 @@ function injectFunctionalStyles() {
       color:#fff;
     }
 
+
+
+    /* Visual polish BlackCat */
+    html, body{
+      max-width:100%;
+      overflow-x:hidden!important;
+    }
+
+    .shirt-card{
+      transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease!important;
+    }
+
+    @media(hover:hover){
+      .shirt-card:hover{
+        transform:translateY(-5px)!important;
+        box-shadow:0 22px 55px rgba(0,0,0,.38)!important;
+        border-color:rgba(255,255,255,.18)!important;
+      }
+    }
+
+    .shirt-badge,
+    .mini-badge{
+      letter-spacing:.02em!important;
+    }
+
+    .choice{
+      transition:transform .15s ease, border-color .15s ease, background .15s ease, box-shadow .15s ease!important;
+    }
+
+    .choice:hover{
+      transform:translateY(-1px)!important;
+    }
+
+    .choice.active{
+      border-color:rgba(255,255,255,.9)!important;
+      box-shadow:0 0 0 3px rgba(255,255,255,.08), inset 0 1px 0 rgba(255,255,255,.18)!important;
+    }
+
+    #colorChoices .choice.active{
+      box-shadow:0 0 0 3px rgba(34,197,94,.22), inset 0 1px 0 rgba(255,255,255,.18)!important;
+    }
+
+    .color-dot{
+      box-shadow:0 0 0 1px rgba(255,255,255,.32), inset 0 0 0 1px rgba(0,0,0,.16)!important;
+    }
+
+    .modal-media img,
+    #modalImage{
+      object-fit:cover!important;
+      object-position:center!important;
+      background:#111217!important;
+    }
+
+    .cart-panel{
+      max-width:min(440px, calc(100vw - 18px))!important;
+    }
+
+    @media(max-width:720px){
+      .shirt-grid,
+      #shirtGrid{
+        grid-template-columns:repeat(2, minmax(0, 1fr))!important;
+        gap:12px!important;
+      }
+
+      .shirt-body{
+        padding:12px!important;
+      }
+
+      .shirt-body h3{
+        font-size:13px!important;
+        line-height:1.05!important;
+      }
+
+      .card-title-block p,
+      .card-commerce span{
+        font-size:10px!important;
+      }
+
+      .card-commerce strong{
+        font-size:12px!important;
+      }
+
+      .product-card-actions-v12{
+        gap:7px!important;
+      }
+
+      .btn-card{
+        min-height:34px!important;
+        font-size:10px!important;
+        padding-inline:8px!important;
+      }
+
+      .modal{
+        width:calc(100vw - 18px)!important;
+        max-height:92vh!important;
+        overflow:auto!important;
+      }
+
+      .modal-media{
+        max-height:48vh!important;
+      }
+    }
+
     @media(max-width:720px){
       .catalog-head{
         align-items:flex-start!important;
@@ -2153,6 +2314,188 @@ function injectFunctionalStyles() {
   `;
 
   document.head.appendChild(style);
+}
+
+
+/* =====================================================
+   BLACKCAT CLUB - POPUP DE FIDELIZACIÓN
+   Guarda leads localmente y, si existe una tabla Supabase
+   newsletter_leads, intenta sincronizarlos automáticamente.
+===================================================== */
+
+const BC_NEWSLETTER = {
+  coupon: 'BLACKCAT10',
+  discountText: '10% OFF en tu primera compra',
+  leadKey: 'blackcat_club_lead_v1',
+  leadsKey: 'blackcat_club_leads_v1',
+  dismissedKey: 'blackcat_club_dismissed_at_v1',
+  dismissHours: 48,
+};
+
+function initNewsletterPopup() {
+  if (document.getElementById('bcClubPopup')) return;
+
+  const savedLead = localStorage.getItem(BC_NEWSLETTER.leadKey);
+  if (savedLead) return;
+
+  const dismissedAt = Number(localStorage.getItem(BC_NEWSLETTER.dismissedKey) || 0);
+  const hoursSinceDismiss = dismissedAt ? (Date.now() - dismissedAt) / 36e5 : Infinity;
+
+  if (hoursSinceDismiss < BC_NEWSLETTER.dismissHours) return;
+
+  const popup = document.createElement('section');
+  popup.id = 'bcClubPopup';
+  popup.className = 'bc-club-popup';
+  popup.setAttribute('aria-hidden', 'true');
+
+  popup.innerHTML = `
+    <div class="bc-club-backdrop" data-club-close></div>
+    <form class="bc-club-card" id="bcClubForm" novalidate>
+      <button class="bc-club-close" type="button" aria-label="Cerrar" data-club-close>×</button>
+      <div class="bc-club-mark"><img src="./assets/logo-gato.png" alt="BlackCat"></div>
+      <p class="bc-club-kicker">Club BlackCat</p>
+      <h2>Únete al drop antes que todos</h2>
+      <p class="bc-club-copy">Regístrate y recibe <strong>${BC_NEWSLETTER.discountText}</strong>, acceso anticipado a nuevos diseños y promos por WhatsApp.</p>
+
+      <div class="bc-club-grid">
+        <label>
+          <span>Nombre</span>
+          <input name="firstName" type="text" autocomplete="given-name" placeholder="Tu nombre" required>
+        </label>
+        <label>
+          <span>Apellido</span>
+          <input name="lastName" type="text" autocomplete="family-name" placeholder="Tu apellido">
+        </label>
+      </div>
+
+      <label>
+        <span>Correo electrónico</span>
+        <input name="email" type="email" autocomplete="email" placeholder="tunombre@email.com" required>
+      </label>
+
+      <button class="bc-club-submit" type="submit">Recibir mi código</button>
+
+      <div class="bc-club-success" id="bcClubSuccess" hidden>
+        <span>Código activado</span>
+        <strong>${BC_NEWSLETTER.coupon}</strong>
+        <button type="button" id="bcCopyCoupon">Copiar código</button>
+        <a id="bcClubWhatsApp" href="#" target="_blank" rel="noopener">Usarlo por WhatsApp</a>
+      </div>
+
+      <p class="bc-club-note">Sin spam. Solo drops, promociones y novedades BlackCat. Puedes pedir baja por WhatsApp cuando quieras.</p>
+    </form>
+  `;
+
+  document.body.appendChild(popup);
+
+  const open = () => {
+    popup.classList.add('show');
+    popup.setAttribute('aria-hidden', 'false');
+  };
+
+  const close = () => {
+    popup.classList.remove('show');
+    popup.setAttribute('aria-hidden', 'true');
+    localStorage.setItem(BC_NEWSLETTER.dismissedKey, String(Date.now()));
+  };
+
+  popup.querySelectorAll('[data-club-close]').forEach((node) => {
+    node.addEventListener('click', close);
+  });
+
+  popup.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') close();
+  });
+
+  const form = popup.querySelector('#bcClubForm');
+  const success = popup.querySelector('#bcClubSuccess');
+  const copyButton = popup.querySelector('#bcCopyCoupon');
+  const waButton = popup.querySelector('#bcClubWhatsApp');
+
+  form?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const formData = new FormData(form);
+    const firstName = String(formData.get('firstName') || '').trim();
+    const lastName = String(formData.get('lastName') || '').trim();
+    const email = String(formData.get('email') || '').trim().toLowerCase();
+
+    if (!firstName || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      form.classList.add('has-error');
+      return;
+    }
+
+    form.classList.remove('has-error');
+
+    const lead = {
+      firstName,
+      lastName,
+      email,
+      coupon: BC_NEWSLETTER.coupon,
+      source: 'blackcat_web_popup',
+      createdAt: new Date().toISOString(),
+    };
+
+    saveNewsletterLeadLocal(lead);
+    await syncNewsletterLead(lead);
+
+    const message = `Hola BlackCat, me registré al Club BlackCat. Mi código es ${BC_NEWSLETTER.coupon}. Quiero consultar diseños disponibles.`;
+    if (waButton) waButton.href = `${whatsappBaseUrl()}?text=${encodeURIComponent(message)}`;
+
+    success.hidden = false;
+    form.classList.add('is-success');
+  });
+
+  copyButton?.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(BC_NEWSLETTER.coupon);
+      copyButton.textContent = 'Copiado';
+      setTimeout(() => (copyButton.textContent = 'Copiar código'), 1400);
+    } catch (_) {
+      copyButton.textContent = BC_NEWSLETTER.coupon;
+    }
+  });
+
+  setTimeout(open, 1800);
+}
+
+function saveNewsletterLeadLocal(lead) {
+  localStorage.setItem(BC_NEWSLETTER.leadKey, JSON.stringify(lead));
+
+  let leads = [];
+  try {
+    leads = JSON.parse(localStorage.getItem(BC_NEWSLETTER.leadsKey) || '[]');
+  } catch (_) {
+    leads = [];
+  }
+
+  leads.unshift(lead);
+  localStorage.setItem(BC_NEWSLETTER.leadsKey, JSON.stringify(leads.slice(0, 100)));
+}
+
+async function syncNewsletterLead(lead) {
+  if (!window.supabaseClient) return false;
+
+  try {
+    const { error } = await window.supabaseClient.from('newsletter_leads').insert({
+      first_name: lead.firstName,
+      last_name: lead.lastName,
+      email: lead.email,
+      coupon: lead.coupon,
+      source: lead.source,
+      created_at: lead.createdAt,
+    });
+
+    if (error) {
+      console.warn('BlackCat Club: lead guardado localmente. Para guardar en Supabase crea la tabla newsletter_leads.', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.warn('BlackCat Club: no se pudo sincronizar lead con Supabase.', error);
+    return false;
+  }
 }
 
 window.showCatalog = showCatalog;
