@@ -2319,8 +2319,8 @@ function injectFunctionalStyles() {
 
 /* =====================================================
    BLACKCAT CLUB - POPUP DE FIDELIZACIÓN
-   Guarda leads localmente y, si existe una tabla Supabase
-   newsletter_leads, intenta sincronizarlos automáticamente.
+   Guarda leads localmente y envía el correo automáticamente
+   usando Supabase Edge Function + Resend.
 ===================================================== */
 
 const BC_NEWSLETTER = {
@@ -2437,7 +2437,12 @@ function initNewsletterPopup() {
     };
 
     saveNewsletterLeadLocal(lead);
-    await syncNewsletterLead(lead);
+
+    const emailWasSent = await syncNewsletterLead(lead);
+
+    if (!emailWasSent) {
+      console.warn('BlackCat Club: el lead quedó guardado localmente, pero el correo no pudo enviarse.');
+    }
 
     const message = `Hola BlackCat, me registré al Club BlackCat. Mi código es ${BC_NEWSLETTER.coupon}. Quiero consultar diseños disponibles.`;
     if (waButton) waButton.href = `${whatsappBaseUrl()}?text=${encodeURIComponent(message)}`;
@@ -2474,29 +2479,285 @@ function saveNewsletterLeadLocal(lead) {
 }
 
 async function syncNewsletterLead(lead) {
-  if (!window.supabaseClient) return false;
+  if (!window.supabaseClient) {
+    console.warn('BlackCat Club: Supabase no está conectado.');
+    return false;
+  }
+
+  const firstName = String(lead?.firstName || '').trim();
+  const lastName = String(lead?.lastName || '').trim();
+  const email = String(lead?.email || '').trim().toLowerCase();
+
+  if (!firstName || !email) {
+    console.warn('BlackCat Club: faltan nombre o correo.');
+    return false;
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    console.warn('BlackCat Club: correo inválido.');
+    return false;
+  }
 
   try {
-    const { error } = await window.supabaseClient.from('newsletter_leads').insert({
-      first_name: lead.firstName,
-      last_name: lead.lastName,
-      email: lead.email,
-      coupon: lead.coupon,
-      source: lead.source,
-      created_at: lead.createdAt,
-    });
+    const { data, error } = await window.supabaseClient.functions.invoke(
+      'club-blackcat-email',
+      {
+        body: {
+          first_name: firstName,
+          last_name: lastName,
+          email,
+        },
+      }
+    );
 
     if (error) {
-      console.warn('BlackCat Club: lead guardado localmente. Para guardar en Supabase crea la tabla newsletter_leads.', error);
+      console.warn('BlackCat Club: error al invocar la Edge Function.', error);
       return false;
     }
 
+    if (!data || data.ok !== true) {
+      console.warn('BlackCat Club: la función respondió, pero no confirmó envío.', data);
+      return false;
+    }
+
+    console.log('BlackCat Club: correo enviado correctamente.', data);
     return true;
   } catch (error) {
-    console.warn('BlackCat Club: no se pudo sincronizar lead con Supabase.', error);
+    console.warn('BlackCat Club: no se pudo enviar el correo automático.', error);
     return false;
   }
 }
+
+function injectNewsletterStyles() {
+  if (document.getElementById('blackcatClubStyles')) return;
+
+  const style = document.createElement('style');
+  style.id = 'blackcatClubStyles';
+  style.textContent = `
+    .bc-club-popup{
+      position:fixed;
+      inset:0;
+      z-index:9999;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      opacity:0;
+      visibility:hidden;
+      pointer-events:none;
+      transition:opacity .22s ease, visibility .22s ease;
+    }
+
+    .bc-club-popup.show{
+      opacity:1;
+      visibility:visible;
+      pointer-events:auto;
+    }
+
+    .bc-club-backdrop{
+      position:absolute;
+      inset:0;
+      background:rgba(0,0,0,.74);
+      backdrop-filter:blur(12px);
+    }
+
+    .bc-club-card{
+      position:relative;
+      width:min(520px, calc(100vw - 28px));
+      border:1px solid rgba(192,132,252,.32);
+      background:radial-gradient(circle at top left,rgba(192,132,252,.24),transparent 34%),linear-gradient(145deg,#10101a,#160d22 58%,#08070d);
+      color:#fff;
+      border-radius:28px;
+      padding:28px;
+      box-shadow:0 30px 90px rgba(0,0,0,.58),0 0 0 1px rgba(255,255,255,.04) inset;
+      overflow:hidden;
+    }
+
+    .bc-club-card::before{
+      content:'';
+      position:absolute;
+      width:220px;
+      height:220px;
+      right:-90px;
+      top:-90px;
+      background:radial-gradient(circle,rgba(236,72,153,.34),transparent 64%);
+      pointer-events:none;
+    }
+
+    .bc-club-close{
+      position:absolute;
+      right:14px;
+      top:14px;
+      width:34px;
+      height:34px;
+      border:0;
+      border-radius:999px;
+      background:rgba(255,255,255,.1);
+      color:#fff;
+      font-size:22px;
+      cursor:pointer;
+      z-index:2;
+    }
+
+    .bc-club-mark{
+      width:58px;
+      height:58px;
+      border-radius:18px;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.12);
+      display:grid;
+      place-items:center;
+      margin-bottom:14px;
+    }
+
+    .bc-club-mark img{
+      width:42px;
+      height:42px;
+      object-fit:contain;
+    }
+
+    .bc-club-kicker{
+      margin:0 0 8px;
+      color:#c084fc;
+      text-transform:uppercase;
+      letter-spacing:.2em;
+      font-size:11px;
+      font-weight:950;
+    }
+
+    .bc-club-card h2{
+      margin:0;
+      max-width:390px;
+      font-size:clamp(26px,4.6vw,42px);
+      line-height:.95;
+      letter-spacing:-.06em;
+    }
+
+    .bc-club-copy{
+      color:rgba(255,255,255,.72);
+      line-height:1.5;
+      margin:14px 0 18px;
+      max-width:440px;
+    }
+
+    .bc-club-copy strong{
+      color:#fff;
+    }
+
+    .bc-club-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+
+    .bc-club-card label{
+      display:flex;
+      flex-direction:column;
+      gap:7px;
+      font-size:12px;
+      color:rgba(255,255,255,.7);
+      font-weight:800;
+    }
+
+    .bc-club-card input{
+      width:100%;
+      min-height:46px;
+      border-radius:15px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.075);
+      color:#fff;
+      padding:0 14px;
+      outline:0;
+    }
+
+    .bc-club-card input:focus{
+      border-color:rgba(192,132,252,.74);
+      box-shadow:0 0 0 3px rgba(192,132,252,.14);
+    }
+
+    .bc-club-submit{
+      width:100%;
+      min-height:48px;
+      margin-top:14px;
+      border:0;
+      border-radius:999px;
+      background:linear-gradient(135deg,#c084fc,#ec4899 58%,#38bdf8);
+      color:#fff;
+      font-weight:950;
+      cursor:pointer;
+      box-shadow:0 18px 42px rgba(192,132,252,.24);
+    }
+
+    .bc-club-success{
+      margin-top:14px;
+      padding:14px;
+      border-radius:18px;
+      border:1px solid rgba(192,132,252,.32);
+      background:rgba(192,132,252,.12);
+      display:grid;
+      gap:8px;
+      text-align:center;
+    }
+
+    .bc-club-success[hidden]{display:none!important;}
+
+    .bc-club-success span{
+      color:rgba(255,255,255,.65);
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.15em;
+      font-weight:900;
+    }
+
+    .bc-club-success strong{
+      font-size:30px;
+      letter-spacing:.08em;
+    }
+
+    .bc-club-success button,
+    .bc-club-success a{
+      min-height:38px;
+      border-radius:999px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      text-decoration:none;
+      font-weight:900;
+    }
+
+    .bc-club-success button{
+      border:1px solid rgba(255,255,255,.18);
+      background:rgba(255,255,255,.1);
+      color:#fff;
+      cursor:pointer;
+    }
+
+    .bc-club-success a{
+      background:#fff;
+      color:#08070d;
+    }
+
+    .bc-club-note{
+      margin:13px 0 0;
+      color:rgba(255,255,255,.45);
+      font-size:11px;
+      line-height:1.45;
+    }
+
+    .bc-club-card.has-error input:invalid{
+      border-color:#fb7185;
+      box-shadow:0 0 0 3px rgba(251,113,133,.15);
+    }
+
+    @media(max-width:560px){
+      .bc-club-card{padding:22px;border-radius:24px;}
+      .bc-club-grid{grid-template-columns:1fr;}
+    }
+  `;
+
+  document.head.appendChild(style);
+}
+
+injectNewsletterStyles();
 
 window.showCatalog = showCatalog;
 window.showHoodies = showHoodies;
