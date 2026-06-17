@@ -557,8 +557,14 @@
         <p>Ingresa la contraseña para crear, editar y administrar productos.</p>
 
         <div class="field">
+          <label for="adminEmail">Correo admin de Supabase</label>
+          <input id="adminEmail" type="email" placeholder="tu-correo-admin@email.com" autocomplete="username" />
+          <span class="hint">Usa un usuario creado en Supabase Auth para que RLS permita guardar cambios.</span>
+        </div>
+
+        <div class="field">
           <label for="adminPassword">Contraseña</label>
-          <input id="adminPassword" type="password" placeholder="Contraseña del panel" />
+          <input id="adminPassword" type="password" placeholder="Contraseña del panel o Supabase" autocomplete="current-password" />
         </div>
 
         <div class="lock-actions">
@@ -588,7 +594,7 @@
       <aside class="sidebar">
         <div class="sidebar-head">
           <h1>Panel<br>admin</h1>
-          <p>Crea productos, separa camisas, hoodies y termos, define precios y guarda directo en Supabase.</p>
+          <p>Crea camisas, hoodies y productos nuevos/exclusivos. Define precios y guarda directo en Supabase.</p>
         </div>
 
         <div class="sidebar-tools">
@@ -644,9 +650,28 @@
             <label for="heroImageUrl">Imagen del hero</label>
             <input id="heroImageUrl" placeholder="assets/assetshero-1.png o URL de Supabase Storage" />
           </div>
+
+          <div class="form-section" style="margin:16px 0 0;padding:16px;">
+            <h3>Beneficio / formulario de clientes</h3>
+            <div class="grid two">
+              <div class="field">
+                <label for="leadPopupEnabled">Pedir datos al entrar a la web</label>
+                <select id="leadPopupEnabled">
+                  <option value="false">Pausado / no mostrar</option>
+                  <option value="true">Activo / mostrar beneficio</option>
+                </select>
+                <span class="hint">Cuando esté pausado, el cliente entra directo al catálogo sin dejar nombre ni correo.</span>
+              </div>
+              <div class="field">
+                <label>Uso recomendado</label>
+                <span class="hint">Actívalo solo cuando tengas una campaña de cupón, preventa o recolección de clientes.</span>
+              </div>
+            </div>
+          </div>
+
           <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">
-            <button class="btn primary" id="saveHeroBtn" type="button">Guardar hero</button>
-            <button class="btn" id="reloadHeroBtn" type="button">Recargar hero</button>
+            <button class="btn primary" id="saveHeroBtn" type="button">Guardar configuración</button>
+            <button class="btn" id="reloadHeroBtn" type="button">Recargar configuración</button>
           </div>
           <div id="heroStatus" class="status"></div>
         </div>
@@ -700,7 +725,7 @@
                 <select id="category">
                   <option value="camisa">Camisa</option>
                   <option value="hoodie">Hoodie</option>
-                  <option value="termo">Termo</option>
+                  <option value="termo">Producto nuevo / exclusivo</option>
                 </select>
               </div>
 
@@ -739,7 +764,7 @@
 
               <div class="field" id="priceBasicWrap">
                 <label for="priceBasic">Precio Basic</label>
-                <input id="priceBasic" type="number" step="0.01" value="16.99" />
+                <input id="priceBasic" type="number" step="0.01" value="17.00" />
               </div>
 
               <div class="field" id="priceOversizeWrap">
@@ -811,36 +836,32 @@
           </div>
 
           <div id="termoSection" class="form-section hidden">
-            <h3>Configuración de termo</h3>
+            <h3>Configuración de producto nuevo / exclusivo</h3>
 
             <div class="grid three">
               <div class="field">
-                <label for="capacity">Capacidad</label>
-                <select id="capacity">
-                  <option value="12oz">12oz</option>
-                  <option value="20oz">20oz</option>
-                  <option value="40oz">40oz</option>
-                </select>
+                <label for="capacity">Presentación / medida</label>
+                <input id="capacity" placeholder="Ej: Unidad, set, talla única, 20oz" value="Unidad" />
               </div>
 
               <div class="field">
-                <label for="customDesign">Tipo de diseño</label>
+                <label for="customDesign">Tipo de producto</label>
                 <select id="customDesign">
-                  <option value="false">Diseño fijo</option>
-                  <option value="true">Diseño personalizado</option>
+                  <option value="false">Producto fijo</option>
+                  <option value="true">Producto personalizado</option>
                 </select>
               </div>
 
               <div class="field">
-                <label for="termoPrice">Precio termo</label>
+                <label for="termoPrice">Precio del producto</label>
                 <input id="termoPrice" type="number" step="0.01" value="14.99" />
               </div>
             </div>
 
             <div class="field" style="margin-top:14px;">
-              <label for="designTitle">Título específico del diseño</label>
-              <input id="designTitle" placeholder="Ej: Termo Toji 20oz / Termo personalizado 40oz" />
-              <span class="hint">Aquí puedes crear varios termos del mismo tamaño, cada uno con título e imagen diferente.</span>
+              <label for="designTitle">Detalle visible / colección</label>
+              <input id="designTitle" placeholder="Ej: Exclusivo BlackCat / Edición limitada / Producto personalizado" />
+              <span class="hint">Aquí puedes crear cualquier producto nuevo o exclusivo con título, precio, imagen y presentación propia.</span>
             </div>
           </div>
 
@@ -887,7 +908,7 @@
 
               <div class="field">
                 <label for="generalPrice">Precio general</label>
-                <input id="generalPrice" type="number" step="0.01" value="16.99" />
+                <input id="generalPrice" type="number" step="0.01" value="17.00" />
                 <span class="hint">Se usa para productos que no requieren modalidad.</span>
               </div>
 
@@ -927,6 +948,7 @@
 
       const els = {
         adminLock: $("adminLock"),
+        adminEmail: $("adminEmail"),
         adminPassword: $("adminPassword"),
         loginBtn: $("loginBtn"),
         loginStatus: $("loginStatus"),
@@ -997,6 +1019,7 @@
         heroBadge2: $("heroBadge2"),
         heroBadge3: $("heroBadge3"),
         heroImageUrl: $("heroImageUrl"),
+        leadPopupEnabled: $("leadPopupEnabled"),
         saveHeroBtn: $("saveHeroBtn"),
         reloadHeroBtn: $("reloadHeroBtn"),
         heroStatus: $("heroStatus"),
@@ -1066,6 +1089,7 @@
         if (els.heroBadge2) els.heroBadge2.value = badges[1] || data.hero_badge_2 || "";
         if (els.heroBadge3) els.heroBadge3.value = badges[2] || data.hero_badge_3 || "";
         if (els.heroImageUrl) els.heroImageUrl.value = hero.image || data.hero_image_url || "";
+        if (els.leadPopupEnabled) els.leadPopupEnabled.value = String(data.lead_popup_enabled === true || data.leadPopupEnabled === true);
       }
 
       async function loadHeroSettings() {
@@ -1105,7 +1129,8 @@
           hero_badge_1: els.heroBadge1.value.trim(),
           hero_badge_2: els.heroBadge2.value.trim(),
           hero_badge_3: els.heroBadge3.value.trim(),
-          hero_image_url: els.heroImageUrl.value.trim()
+          hero_image_url: els.heroImageUrl.value.trim(),
+          lead_popup_enabled: els.leadPopupEnabled.value === "true"
         };
 
         setHeroStatus("Guardando hero...");
@@ -1122,6 +1147,15 @@
 
         setHeroStatus("Hero actualizado correctamente en Supabase.", "ok");
         showToast("Hero actualizado correctamente en Supabase.", "ok");
+      }
+
+      function normalizeAdminCategory(value) {
+        const text = String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+        if (text.includes("hoodie") || text.includes("sudadera") || text === "hoodies") return "hoodie";
+        if (text.includes("termo") || text.includes("extra") || text.includes("exclusivo") || text === "extras") return "termo";
+
+        return "camisa";
       }
 
       function shirtModeHas(mode, type) {
@@ -1183,7 +1217,7 @@
         els.priceBoxyFitWrap?.classList.toggle("hidden", !hasBoxyFit);
         els.priceBoxyFitPlusWrap?.classList.toggle("hidden", !hasBoxyFit);
 
-        els.priceBasic.value = els.priceBasic.value || "16.99";
+        els.priceBasic.value = els.priceBasic.value || "17.00";
         els.priceOversize.value = els.priceOversize.value || "19.99";
         els.priceCropTop.value = els.priceCropTop.value || "12.99";
         els.priceBoxyFit.value = els.priceBoxyFit.value || "22.00";
@@ -1194,11 +1228,11 @@
         } else if (mode === "boxyfit") {
           els.generalPrice.value = Number(els.priceBoxyFit.value || 22).toFixed(2);
         } else if (hasBasic) {
-          els.generalPrice.value = Number(els.priceBasic.value || 16.99).toFixed(2);
+          els.generalPrice.value = Number(els.priceBasic.value || 17.00).toFixed(2);
         } else if (hasOversize) {
           els.generalPrice.value = Number(els.priceOversize.value || 19.99).toFixed(2);
         } else {
-          els.generalPrice.value = "16.99";
+          els.generalPrice.value = "17.00";
         }
       }
 
@@ -1207,7 +1241,7 @@
 
         if (mode === "croptop") return Number(els.priceCropTop.value || 12.99);
         if (mode === "boxyfit") return Number(els.priceBoxyFit.value || 22);
-        if (shirtModeHas(mode, "basic")) return Number(els.priceBasic.value || 16.99);
+        if (shirtModeHas(mode, "basic")) return Number(els.priceBasic.value || 17.00);
         if (shirtModeHas(mode, "oversize")) return Number(els.priceOversize.value || 19.99);
 
         return Number(els.generalPrice.value || 0);
@@ -1246,8 +1280,8 @@
         }
 
         if (category === "termo") {
-          const custom = els.customDesign.value === "true" ? "personalizado" : "diseño fijo";
-          meta = `Termo ${els.capacity.value} · ${custom} · $${Number(els.termoPrice.value || 0).toFixed(2)}`;
+          const custom = els.customDesign.value === "true" ? "personalizado" : "producto fijo";
+          meta = `Producto exclusivo · ${els.capacity.value} · ${custom} · $${Number(els.termoPrice.value || 0).toFixed(2)}`;
         }
 
         els.previewMeta.textContent = meta;
@@ -1272,7 +1306,7 @@
         els.orderIndex.value = products.length + 1;
 
         els.shirtMode.value = "basic";
-        els.priceBasic.value = "16.99";
+        els.priceBasic.value = "17.00";
         els.priceOversize.value = "19.99";
         els.priceCropTop.value = "12.99";
         els.priceBoxyFit.value = "22.00";
@@ -1281,14 +1315,14 @@
         els.hoodiePrice.value = "28.99";
         els.stock.value = "0";
 
-        els.capacity.value = "20oz";
+        els.capacity.value = "Unidad";
         els.customDesign.value = "false";
         els.termoPrice.value = "14.99";
         els.designTitle.value = "";
 
         els.imageUrl.value = "";
         els.slug.value = "";
-        els.generalPrice.value = "16.99";
+        els.generalPrice.value = "17.00";
 
         setActiveChipValues(els.colorChips, ["Negro", "Blanco", "Beige", "Gris"]);
         setActiveChipValues(els.sizeChips, ["XS", "S", "M", "L", "XL", "2XL", "3XL"]);
@@ -1314,23 +1348,26 @@
         els.badge.value = product.badge || "";
         els.description.value = product.description || "";
 
-        els.category.value = product.category || product.product_type || "camisa";
+        const adminCategory = normalizeAdminCategory(product.category || product.product_type || "camisa");
+        const currentMode = product.shirt_mode || product.product_type || "basic";
+
+        els.category.value = adminCategory;
         els.active.value = String(product.active !== false);
         els.orderIndex.value = product.order_index ?? 0;
 
-        els.shirtMode.value = product.shirt_mode || "basic";
-        els.priceBasic.value = product.price_basic ?? 16.99;
+        els.shirtMode.value = currentMode;
+        els.priceBasic.value = product.price_basic ?? 17.00;
         els.priceOversize.value = product.price_oversize ?? 19.99;
-        els.priceCropTop.value = product.shirt_mode === "croptop" ? (product.price ?? 12.99) : 12.99;
-        els.priceBoxyFit.value = product.shirt_mode === "boxyfit" ? (product.price ?? 22.00) : 22.00;
-        els.priceBoxyFitPlus.value = product.product_type === "boxyfit" ? (product.price_oversize ?? 25.00) : 25.00;
+        els.priceCropTop.value = product.price_croptop ?? (currentMode === "croptop" ? (product.price ?? 12.99) : 12.99);
+        els.priceBoxyFit.value = product.price_boxyfit ?? (String(currentMode).includes("boxyfit") ? (product.price ?? 22.00) : 22.00);
+        els.priceBoxyFitPlus.value = product.price_boxyfit_plus ?? 25.00;
 
-        els.hoodiePrice.value = product.category === "hoodie" ? product.price ?? 28.99 : 28.99;
+        els.hoodiePrice.value = adminCategory === "hoodie" ? product.price ?? 28.99 : 28.99;
         els.stock.value = product.stock ?? 0;
 
-        els.capacity.value = product.capacity || "20oz";
+        els.capacity.value = product.capacity || "Unidad";
         els.customDesign.value = String(product.custom_design === true);
-        els.termoPrice.value = product.category === "termo" ? product.price ?? 14.99 : 14.99;
+        els.termoPrice.value = adminCategory === "termo" ? product.price ?? 14.99 : 14.99;
         els.designTitle.value = product.design_title || "";
 
         els.imageUrl.value = product.image_url || "";
@@ -1340,11 +1377,11 @@
         setActiveChipValues(els.colorChips, product.colors || []);
         setActiveChipValues(
           els.sizeChips,
-          product.category === "camisa" ? product.sizes || [] : ["XS", "S", "M", "L", "XL", "2XL", "3XL"]
+          adminCategory === "camisa" ? product.sizes || [] : ["XS", "S", "M", "L", "XL", "2XL", "3XL"]
         );
         setActiveChipValues(
           els.hoodieSizeChips,
-          product.category === "hoodie" ? product.sizes || [] : ["L", "XL", "2XL"]
+          adminCategory === "hoodie" ? product.sizes || [] : ["L", "XL", "2XL"]
         );
 
         document.querySelectorAll(".product-item").forEach(item => {
@@ -1379,7 +1416,7 @@
         }
 
         if (category === "termo") {
-          productType = "termo";
+          productType = "extra";
           price = Number(els.termoPrice.value || 0);
           sizes = [els.capacity.value];
         }
@@ -1391,26 +1428,27 @@
           title,
           description: els.description.value.trim(),
           image_url: els.imageUrl.value.trim(),
-          anime: category === "termo" ? "" : els.anime.value.trim(),
+          anime: category === "termo" ? "Exclusivos" : els.anime.value.trim(),
           character: els.character.value.trim(),
           badge: els.badge.value,
           category,
           product_type: productType,
           shirt_mode: category === "camisa" ? els.shirtMode.value : null,
           price,
-          price_basic: category === "camisa"
-            ? (els.shirtMode.value === "croptop"
-              ? Number(els.priceCropTop.value || 12.99)
-              : els.shirtMode.value === "boxyfit"
-                ? Number(els.priceBoxyFit.value || 22.00)
-                : Number(els.priceBasic.value || 16.99))
+          price_basic: category === "camisa" && shirtModeHas(els.shirtMode.value, "basic")
+            ? Number(els.priceBasic.value || 17.00)
             : null,
-          price_oversize: category === "camisa"
-            ? (els.shirtMode.value === "boxyfit"
-              ? Number(els.priceBoxyFitPlus.value || 25.00)
-              : shirtModeHas(els.shirtMode.value, "oversize")
-                ? Number(els.priceOversize.value || 19.99)
-                : null)
+          price_oversize: category === "camisa" && shirtModeHas(els.shirtMode.value, "oversize")
+            ? Number(els.priceOversize.value || 19.99)
+            : null,
+          price_croptop: category === "camisa" && shirtModeHas(els.shirtMode.value, "croptop")
+            ? Number(els.priceCropTop.value || 12.99)
+            : null,
+          price_boxyfit: category === "camisa" && shirtModeHas(els.shirtMode.value, "boxyfit")
+            ? Number(els.priceBoxyFit.value || 22.00)
+            : null,
+          price_boxyfit_plus: category === "camisa" && shirtModeHas(els.shirtMode.value, "boxyfit")
+            ? Number(els.priceBoxyFitPlus.value || 25.00)
             : null,
           price_custom: category === "termo" && els.customDesign.value === "true" ? Number(els.termoPrice.value || 0) : 0,
           capacity: category === "termo" ? els.capacity.value : null,
@@ -1435,7 +1473,7 @@
         }
 
         if (payload.category === "termo" && !payload.capacity) {
-          return "Selecciona la capacidad del termo.";
+          return "Agrega la presentación o medida del producto.";
         }
 
         if (!payload.price || payload.price <= 0) {
@@ -1598,21 +1636,40 @@
         showToast("Producto eliminado correctamente en Supabase.", "ok");
       }
 
-      function login() {
+      async function login() {
+        const email = els.adminEmail?.value.trim();
         const value = els.adminPassword.value.trim();
         const expectedPassword = getExpectedAdminPassword();
 
-        if (value === expectedPassword) {
-          els.adminLock.classList.add("hidden");
-          document.body.classList.remove("admin-locked");
-          els.loginStatus.textContent = "";
-          els.adminPassword.value = "";
-          loadProducts();
-          loadHeroSettings();
-        } else {
+        els.loginStatus.textContent = "Validando acceso...";
+        els.loginStatus.className = "status";
+
+        if (adminSupabaseClient && email) {
+          const { error } = await adminSupabaseClient.auth.signInWithPassword({
+            email,
+            password: value
+          });
+
+          if (error) {
+            els.loginStatus.textContent = "No se pudo iniciar sesión en Supabase: " + error.message;
+            els.loginStatus.className = "status error";
+            return;
+          }
+        } else if (value !== expectedPassword) {
           els.loginStatus.textContent = "Contraseña incorrecta.";
           els.loginStatus.className = "status error";
+          return;
+        } else {
+          els.loginStatus.textContent = "Acceso local activado. Para guardar con RLS, inicia sesión con correo de Supabase Auth.";
+          els.loginStatus.className = "status error";
         }
+
+        els.adminLock.classList.add("hidden");
+        document.body.classList.remove("admin-locked");
+        els.loginStatus.textContent = "";
+        els.adminPassword.value = "";
+        loadProducts();
+        loadHeroSettings();
       }
 
       function bindEvents() {
@@ -1629,7 +1686,10 @@
         els.saveHeroBtn?.addEventListener("click", saveHeroSettings);
         els.reloadHeroBtn?.addEventListener("click", loadHeroSettings);
 
-        els.category.addEventListener("change", updateProductTypeSections);
+        els.category.addEventListener("change", () => {
+          if (els.category.value === "camisa") applyDefaultSizesForShirtMode(els.shirtMode.value);
+          updateProductTypeSections();
+        });
         els.shirtMode?.addEventListener("change", () => {
           applyDefaultSizesForShirtMode(els.shirtMode.value);
           updateShirtModeFields();
