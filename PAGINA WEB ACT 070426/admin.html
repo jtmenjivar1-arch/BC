@@ -701,10 +701,11 @@
               <div class="field">
                 <label for="badge">Badge</label>
                 <select id="badge">
+                  <option value="NUEVO">NUEVO</option>
+                  <option value="LIMITADO">LIMITADO</option>
                   <option value="NEW">NEW</option>
                   <option value="DROP">DROP</option>
                   <option value="EXCLUSIVO">EXCLUSIVO</option>
-                  <option value="LIMITADO">LIMITADO</option>
                   <option value="">Sin badge</option>
                 </select>
               </div>
@@ -724,8 +725,9 @@
                 <label for="category">Categoría</label>
                 <select id="category">
                   <option value="camisa">Camisa</option>
+                  <option value="camisa_exclusiva">Camisa nueva / exclusiva</option>
                   <option value="hoodie">Hoodie</option>
-                  <option value="termo">Producto nuevo / exclusivo</option>
+                  <option value="termo">Producto fijo / accesorio exclusivo</option>
                 </select>
               </div>
 
@@ -861,7 +863,7 @@
             <div class="field" style="margin-top:14px;">
               <label for="designTitle">Detalle visible / colección</label>
               <input id="designTitle" placeholder="Ej: Exclusivo BlackCat / Edición limitada / Producto personalizado" />
-              <span class="hint">Aquí puedes crear cualquier producto nuevo o exclusivo con título, precio, imagen y presentación propia.</span>
+              <span class="hint">Usa esta sección solo para accesorios o productos de precio fijo. Para camisas nuevas/exclusivas usa la categoría “Camisa nueva / exclusiva”.</span>
             </div>
           </div>
 
@@ -1153,9 +1155,14 @@
         const text = String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
         if (text.includes("hoodie") || text.includes("sudadera") || text === "hoodies") return "hoodie";
-        if (text.includes("termo") || text.includes("extra") || text.includes("exclusivo") || text === "extras") return "termo";
+        if (text.includes("camisa_exclusiva") || text.includes("camisa exclusiva")) return "camisa_exclusiva";
+        if (text.includes("termo") || text === "extra" || text === "extras" || text.includes("accesorio") || text.includes("producto_fijo")) return "termo";
 
         return "camisa";
+      }
+
+      function isShirtCategory(category) {
+        return category === "camisa" || category === "camisa_exclusiva";
       }
 
       function shirtModeHas(mode, type) {
@@ -1182,13 +1189,13 @@
       function updateProductTypeSections() {
         const category = els.category.value;
 
-        els.shirtSection.classList.toggle("hidden", category !== "camisa");
+        els.shirtSection.classList.toggle("hidden", !isShirtCategory(category));
         els.hoodieSection.classList.toggle("hidden", category !== "hoodie");
         els.termoSection.classList.toggle("hidden", category !== "termo");
 
         updateShirtModeFields();
 
-        if (category === "camisa") {
+        if (isShirtCategory(category)) {
           els.generalPrice.value = getCurrentShirtBasePrice();
         }
 
@@ -1271,8 +1278,9 @@
 
         let meta = "";
 
-        if (category === "camisa") {
-          meta = `Camisa · ${getReadableShirtMode(els.shirtMode.value)} · desde $${getCurrentShirtBasePrice().toFixed(2)}`;
+        if (isShirtCategory(category)) {
+          const label = category === "camisa_exclusiva" ? "Camisa exclusiva" : "Camisa";
+          meta = `${label} · ${getReadableShirtMode(els.shirtMode.value)} · desde $${getCurrentShirtBasePrice().toFixed(2)}`;
         }
 
         if (category === "hoodie") {
@@ -1348,7 +1356,8 @@
         els.badge.value = product.badge || "";
         els.description.value = product.description || "";
 
-        const adminCategory = normalizeAdminCategory(product.category || product.product_type || "camisa");
+        let adminCategory = normalizeAdminCategory(product.category || product.product_type || "camisa");
+        if (adminCategory === "camisa" && String(product.badge || "").toLowerCase().includes("exclusivo")) adminCategory = "camisa_exclusiva";
         const currentMode = product.shirt_mode || product.product_type || "basic";
 
         els.category.value = adminCategory;
@@ -1377,7 +1386,7 @@
         setActiveChipValues(els.colorChips, product.colors || []);
         setActiveChipValues(
           els.sizeChips,
-          adminCategory === "camisa" ? product.sizes || [] : ["XS", "S", "M", "L", "XL", "2XL", "3XL"]
+          isShirtCategory(adminCategory) ? product.sizes || [] : ["XS", "S", "M", "L", "XL", "2XL", "3XL"]
         );
         setActiveChipValues(
           els.hoodieSizeChips,
@@ -1400,7 +1409,7 @@
         let productType = category;
         let sizes = [];
 
-        if (category === "camisa") {
+        if (isShirtCategory(category)) {
           const mode = els.shirtMode.value;
           const isSingleMode = ["basic", "oversize", "croptop", "boxyfit"].includes(mode);
 
@@ -1431,23 +1440,25 @@
           anime: category === "termo" ? "Exclusivos" : els.anime.value.trim(),
           character: els.character.value.trim(),
           badge: els.badge.value,
-          category,
+          // Preserva "camisa_exclusiva" para que el sitio la reconozca como línea nueva/exclusiva,
+          // pero la web la sigue mostrando dentro del catálogo principal.
+          category: isShirtCategory(category) ? category : category,
           product_type: productType,
-          shirt_mode: category === "camisa" ? els.shirtMode.value : null,
+          shirt_mode: isShirtCategory(category) ? els.shirtMode.value : null,
           price,
-          price_basic: category === "camisa" && shirtModeHas(els.shirtMode.value, "basic")
+          price_basic: isShirtCategory(category) && shirtModeHas(els.shirtMode.value, "basic")
             ? Number(els.priceBasic.value || 17.00)
             : null,
-          price_oversize: category === "camisa" && shirtModeHas(els.shirtMode.value, "oversize")
+          price_oversize: isShirtCategory(category) && shirtModeHas(els.shirtMode.value, "oversize")
             ? Number(els.priceOversize.value || 19.99)
             : null,
-          price_croptop: category === "camisa" && shirtModeHas(els.shirtMode.value, "croptop")
+          price_croptop: isShirtCategory(category) && shirtModeHas(els.shirtMode.value, "croptop")
             ? Number(els.priceCropTop.value || 12.99)
             : null,
-          price_boxyfit: category === "camisa" && shirtModeHas(els.shirtMode.value, "boxyfit")
+          price_boxyfit: isShirtCategory(category) && shirtModeHas(els.shirtMode.value, "boxyfit")
             ? Number(els.priceBoxyFit.value || 22.00)
             : null,
-          price_boxyfit_plus: category === "camisa" && shirtModeHas(els.shirtMode.value, "boxyfit")
+          price_boxyfit_plus: isShirtCategory(category) && shirtModeHas(els.shirtMode.value, "boxyfit")
             ? Number(els.priceBoxyFitPlus.value || 25.00)
             : null,
           price_custom: category === "termo" && els.customDesign.value === "true" ? Number(els.termoPrice.value || 0) : 0,
@@ -1687,7 +1698,8 @@
         els.reloadHeroBtn?.addEventListener("click", loadHeroSettings);
 
         els.category.addEventListener("change", () => {
-          if (els.category.value === "camisa") applyDefaultSizesForShirtMode(els.shirtMode.value);
+          if (isShirtCategory(els.category.value)) applyDefaultSizesForShirtMode(els.shirtMode.value);
+          if (els.category.value === "camisa_exclusiva") els.badge.value = "NUEVO";
           updateProductTypeSections();
         });
         els.shirtMode?.addEventListener("change", () => {
