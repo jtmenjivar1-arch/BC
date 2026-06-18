@@ -6,7 +6,8 @@
       defaultInstagram: 'blackcat.sivar',
       defaultTikTok: 'blackcat.sivar',
       defaultEmail: 'blackcat2811@hotmail.com',
-      view: 'catalog', // catalog | hoodies | extras
+      view: 'catalog', // catalog | hoodies
+      featuredOnly: false, // filtro especial: solo viñetas NUEVO o LIMITADO
       activeAnime: 'all',
       search: '',
       products: [],
@@ -53,12 +54,21 @@
       'extras',
       'vaso',
       'taza',
-      'exclusivo',
-      'exclusivos',
+    ];
+
+    // Solo estas viñetas activan el bloque/filtro de "Nuevos y limitados".
+    // DROP, EXCLUSIVO u otras etiquetas siguen visibles en la tarjeta, pero no entran ahí.
+    const FEATURED_BADGES = [
+      'new',
       'nuevo',
+      'nueva',
       'nuevos',
-      'especial',
-      'especiales',
+      'nuevas',
+      'limitado',
+      'limitada',
+      'limitados',
+      'limitadas',
+      'limited',
     ];
 
     const PRODUCT_TYPES = [
@@ -434,6 +444,44 @@
         .replace(/^_+|_+$/g, '');
     }
 
+    function isPromotionalSeriesName(value) {
+      const label = normalize(value);
+
+      if (!label) return true;
+
+      return [
+        'new',
+        'nuevo',
+        'nueva',
+        'nuevos',
+        'nuevas',
+        'drop',
+        'drop activo',
+        'limitado',
+        'limitada',
+        'limitados',
+        'limitadas',
+        'limited',
+        'exclusivo',
+        'exclusiva',
+        'exclusivos',
+        'exclusivas',
+        'nuevos exclusivos',
+        'nuevos y exclusivos',
+        'nuevos limitados',
+        'nuevos y limitados',
+        'new exclusive',
+        'new exclusives',
+        'blackcat exclusivo',
+        'blackcat exclusivos',
+      ].includes(label);
+    }
+
+    function isFeaturedBadge(value) {
+      const label = normalize(value);
+      return FEATURED_BADGES.includes(label);
+    }
+
     function getAdminTypesFromRawProduct(product = {}) {
       const sources = [
         product.type_options,
@@ -564,18 +612,9 @@
       }
 
       if (
-        raw === 'termo' ||
-        raw === 'termos' ||
-        raw === 'extra' ||
-        raw === 'extras' ||
-        raw.includes('termo') ||
-        EXTRAS_WORDS.some((word) => text.includes(normalize(word)))
-      ) {
-        return 'extras';
-      }
-
-      if (
         raw === 'camisa' ||
+        raw === 'camisa_exclusiva' ||
+        raw === 'camisa exclusiva' ||
         raw === 'camiseta' ||
         raw === 'basic' ||
         raw === 'oversize' ||
@@ -595,6 +634,25 @@
         raw.includes('boxy fit')
       ) {
         return 'catalog';
+      }
+
+      // Solo se marca como extra/accesorio cuando la categoría real del admin lo indica.
+      // Palabras como NEW, nuevo o exclusivo en el título/badge NO convierten una camisa en producto fijo.
+      if (
+        raw === 'termo' ||
+        raw === 'termos' ||
+        raw === 'extra' ||
+        raw === 'extras' ||
+        raw === 'producto_exclusivo' ||
+        raw === 'producto fijo' ||
+        raw === 'accesorio' ||
+        raw === 'accesorios' ||
+        raw.includes('termo') ||
+        raw.includes('vaso') ||
+        raw.includes('taza') ||
+        raw.includes('accesorio')
+      ) {
+        return 'extras';
       }
 
       return 'catalog';
@@ -877,6 +935,7 @@
 
     function showCatalog(scroll = true) {
       BC.view = 'catalog';
+      BC.featuredOnly = false;
       BC.activeAnime = 'all';
 
       if (el.search) {
@@ -897,6 +956,7 @@
 
     function showCatalogSearch(term, scroll = true) {
       BC.view = 'catalog';
+      BC.featuredOnly = false;
       BC.activeAnime = 'all';
       BC.search = term || '';
 
@@ -916,6 +976,7 @@
 
     function showHoodies(scroll = true) {
       BC.view = 'hoodies';
+      BC.featuredOnly = false;
       BC.activeAnime = 'all';
 
       if (el.search) {
@@ -935,7 +996,11 @@
     }
 
     function showExtras(scroll = true) {
-      BC.view = 'extras';
+      // Filtro especial dentro del catálogo principal:
+      // solo muestra productos con viñeta NUEVO/NEW o LIMITADO.
+      // DROP, EXCLUSIVO u otras viñetas no entran en este bloque.
+      BC.view = 'catalog';
+      BC.featuredOnly = true;
       BC.activeAnime = 'all';
 
       if (el.search) {
@@ -1003,9 +1068,9 @@
         return;
       }
 
-      if (BC.view === 'extras') {
-        if (eyebrow) eyebrow.textContent = 'Categoría independiente';
-        if (title) title.textContent = 'Extras BlackCat';
+      if (BC.featuredOnly) {
+        if (eyebrow) eyebrow.textContent = 'Nuevos y limitados';
+        if (title) title.textContent = 'Nuevos y limitados';
         backRow.style.display = 'flex';
         return;
       }
@@ -1027,7 +1092,7 @@
       if (eyebrow) eyebrow.textContent = 'Catálogo BlackCat';
       if (title) title.textContent = 'Elige tu diseño';
 
-      backRow.style.display = BC.activeAnime !== 'all' || BC.search ? 'flex' : 'none';
+      backRow.style.display = BC.featuredOnly || BC.activeAnime !== 'all' || BC.search ? 'flex' : 'none';
     }
 
     function updateSeriesSectionVisibility() {
@@ -1114,11 +1179,21 @@
     }
 
     function getAvailableSeries() {
-      const source = BC.products.filter((product) => product.category === 'catalog');
+      const source = BC.products.filter((product) => {
+        if (product.category !== 'catalog') return false;
+        if (BC.featuredOnly && !isFeaturedBadge(product.badge)) return false;
+        return true;
+      });
       const map = new Map();
 
       source.forEach((product) => {
         const key = product.anime || 'BlackCat';
+
+        // Los filtros son solo para series/anime reales.
+        // Etiquetas comerciales como NEW, DROP, LIMITADO o EXCLUSIVO no deben aparecer como filtros.
+        if (isPromotionalSeriesName(key)) {
+          return;
+        }
 
         if (!map.has(key)) {
           map.set(key, {
@@ -1140,17 +1215,16 @@
         return BC.products.filter((p) => p.category === 'hoodies');
       }
 
-      if (BC.view === 'extras') {
-        return BC.products.filter((p) => p.category === 'extras');
-      }
-
-      return BC.products.filter((p) => p.category === 'catalog');
+      // Catálogo principal: muestra camisas normales + camisas/productos nuevos/limitados.
+      // Solo las hoodies quedan como línea separada.
+      return BC.products.filter((p) => p.category !== 'hoodies');
     }
 
     function getVisibleProducts() {
       const search = normalize(BC.search);
 
       return getProductsByView().filter((p) => {
+        const matchesFeatured = !BC.featuredOnly || isFeaturedBadge(p.badge);
         const matchesAnime = BC.activeAnime === 'all' || sameFilter(p.anime, BC.activeAnime);
 
         const typeLabels = getTypesForProduct(p)
@@ -1163,7 +1237,7 @@
 
         const matchesSearch = !search || haystack.includes(search);
 
-        return matchesAnime && matchesSearch;
+        return matchesFeatured && matchesAnime && matchesSearch;
       });
     }
 
@@ -1255,15 +1329,15 @@
       const message =
         BC.view === 'hoodies'
           ? 'Aún no hay hoodies cargadas en esta categoría. Cuando agregues productos tipo hoodie aparecerán aquí automáticamente.'
-          : BC.view === 'extras'
-            ? 'Aún no hay productos nuevos o exclusivos cargados. Cuando los agregues desde el admin aparecerán aquí automáticamente.'
+          : BC.featuredOnly
+            ? 'Aún no hay productos con viñeta NUEVO o LIMITADO. Asigna una de esas dos viñetas desde el admin para que aparezcan aquí.'
             : 'No hay diseños disponibles con este filtro.';
 
       return `
         <div class="panel empty-state">
           <strong>${message}</strong>
           ${
-            BC.view !== 'catalog' || BC.activeAnime !== 'all' || BC.search
+            BC.view !== 'catalog' || BC.featuredOnly || BC.activeAnime !== 'all' || BC.search
               ? '<button class="btn-card primary empty-back-btn" type="button">Regresar al catálogo</button>'
               : ''
           }
