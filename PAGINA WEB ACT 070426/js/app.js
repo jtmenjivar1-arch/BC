@@ -1771,171 +1771,171 @@
       closeModal();
       openCart();
     }
+function trackMetaCheckout(items = [], channel = 'whatsapp') {
+  const total = items.reduce((sum, item) => sum + Number(item.unitPrice || 0) * Number(item.qty || 1), 0);
 
-    function buySelectedNow() {
-      const product = BC.selectedProduct;
+  if (typeof fbq !== 'function') return;
 
-      if (!product) return;
+  fbq('track', 'Lead', {
+    content_name: 'BlackCat pedido WhatsApp',
+    content_type: 'product',
+    value: total,
+    currency: 'USD',
+    checkout_channel: channel,
+  });
 
-      const item = buildCartItem(product);
+  fbq('track', 'InitiateCheckout', {
+    content_name: 'BlackCat pedido WhatsApp',
+    content_type: 'product',
+    value: total,
+    currency: 'USD',
+    checkout_channel: channel,
+  });
+}
 
-      openWhatsApp(buildWhatsAppMessage([item]));
+async function savePendingOrder(items = [], message = '', channel = 'whatsapp') {
+  if (!window.supabaseClient || !items.length) return null;
+
+  const total = items.reduce((sum, item) => sum + Number(item.unitPrice || 0) * Number(item.qty || 1), 0);
+  const mainItem = items[0];
+
+  const order = {
+    product_id: mainItem.id || '',
+    product_name: items.map((item) => item.title).join(' + '),
+    product_price: Number(mainItem.unitPrice || 0),
+    quantity: items.reduce((sum, item) => sum + Number(item.qty || 1), 0),
+    size: items.map((item) => item.size).join(', '),
+    total,
+    status: 'pending',
+    source: 'website',
+    checkout_channel: channel,
+    customer_phone: '',
+    whatsapp_message: message,
+  };
+
+  try {
+    const { error } = await window.supabaseClient.from('orders').insert(order);
+
+    if (error) {
+      console.warn('BlackCat: no se pudo guardar pedido pendiente.', error);
     }
+  } catch (error) {
+    console.warn('BlackCat: error guardando pedido pendiente.', error);
+  }
 
-    function buildCartItem(product) {
-      const unitPrice = getSelectedUnitPrice();
-      const key = `${product.id}-${BC.selectedVariant.type}-${BC.selectedVariant.size}-${BC.selectedVariant.color}`;
+  return order;
+}
 
-      return {
-        key,
-        id: product.id,
-        title: product.title,
-        anime: product.anime,
-        character: product.character,
-        category: product.category,
-        image: product.image,
-        type: BC.selectedVariant.type,
-        typeLabel: getTypeLabel(BC.selectedVariant.type),
-        size: BC.selectedVariant.size,
-        color: BC.selectedVariant.color,
-        qty: BC.selectedVariant.qty,
-        unitPrice,
-      };
-    }
+async function buySelectedNow() {
+  const product = BC.selectedProduct;
 
-    function renderCart() {
-      const count = BC.cart.reduce((sum, item) => sum + item.qty, 0);
-      const total = BC.cart.reduce((sum, item) => sum + item.qty * item.unitPrice, 0);
+  if (!product) return;
 
-      if (el.cartCount) el.cartCount.textContent = count;
-      if (el.bottomCartCount) el.bottomCartCount.textContent = count;
-      if (el.cartTotal) el.cartTotal.textContent = MONEY.format(total);
+  const item = buildCartItem(product);
+  const message = buildWhatsAppMessage([item]);
 
-      if (!el.cartItems) return;
+  trackMetaCheckout([item], 'whatsapp');
+  await savePendingOrder([item], message, 'whatsapp');
 
-      if (!BC.cart.length) {
-        el.cartItems.innerHTML = '<div class="cart-empty">Tu carrito está vacío.</div>';
-        return;
-      }
+  openWhatsApp(message);
+}
 
-      el.cartItems.innerHTML = BC.cart
-        .map(
-          (item) => `
-            <article class="cart-item" data-key="${escapeAttr(item.key)}">
-              <img src="${escapeAttr(item.image)}" alt="${escapeAttr(item.title)}" loading="lazy" decoding="async">
+function buildCartItem(product) {
+  const unitPrice = getSelectedUnitPrice();
+  const key = `${product.id}-${BC.selectedVariant.type}-${BC.selectedVariant.size}-${BC.selectedVariant.color}`;
 
-              <div class="cart-info">
-                <strong>${escapeHTML(item.title)}</strong>
-                <span class="cart-meta">${escapeHTML(getCartCategoryLabel(item))} · ${escapeHTML(
-            item.typeLabel || item.type
-          )} · ${escapeHTML(item.size)} · ${escapeHTML(item.color)}</span>
-                <b class="cart-line-price">${MONEY.format(item.unitPrice * item.qty)}</b>
-              </div>
+  return {
+    key,
+    id: product.id,
+    title: product.title,
+    anime: product.anime,
+    character: product.character,
+    category: product.category,
+    image: product.image,
+    type: BC.selectedVariant.type,
+    typeLabel: getTypeLabel(BC.selectedVariant.type),
+    size: BC.selectedVariant.size,
+    color: BC.selectedVariant.color,
+    qty: BC.selectedVariant.qty,
+    unitPrice,
+  };
+}
 
-              <div class="qty-mini">
-                <button type="button" data-cart="minus">−</button>
-                <span>${item.qty}</span>
-                <button type="button" data-cart="plus">+</button>
-              </div>
+async function sendProductQuickWhatsApp(product) {
+  const type =
+    product.category === 'hoodies'
+      ? 'hoodie'
+      : product.category === 'extras'
+        ? product.customDesign
+          ? 'personalizado'
+          : 'producto'
+        : getTypesForProduct(product)[0] || 'basic';
 
-              <button class="cart-remove" type="button" data-cart="remove">×</button>
-            </article>
-          `
-        )
-        .join('');
+  const size =
+    product.category === 'extras'
+      ? product.capacity || product.sizes?.[0] || '20oz'
+      : product.category === 'hoodies'
+        ? product.sizes?.[0] || 'L'
+        : getSizesForType(product, type)[0] || 'Por confirmar';
 
-      $$('[data-cart]', el.cartItems).forEach((btn) => {
-        btn.addEventListener('click', () => updateCart(btn.closest('.cart-item')?.dataset.key, btn.dataset.cart));
-      });
-    }
+  const item = {
+    id: product.id,
+    title: product.title,
+    anime: product.anime,
+    category: product.category,
+    type,
+    typeLabel: getTypeLabel(type),
+    size,
+    color: product.category === 'extras' ? getAvailableColors(product)[0]?.name || 'Por confirmar' : 'Por confirmar',
+    qty: 1,
+    unitPrice: getUnitPriceForVariant(product, type, size),
+  };
 
-    function getCartCategoryLabel(item) {
-      if (item.category === 'hoodies') return 'Hoodie';
-      if (item.category === 'extras') return 'Producto';
+  const message = buildWhatsAppMessage([item]);
 
-      return 'Camiseta';
-    }
+  trackMetaCheckout([item], 'whatsapp');
+  await savePendingOrder([item], message, 'whatsapp');
 
-    function updateCart(key, action) {
-      const item = BC.cart.find((entry) => entry.key === key);
+  openWhatsApp(message);
+}
 
-      if (!item) return;
+async function sendCartToWhatsApp() {
+  if (!BC.cart.length) return;
 
-      if (action === 'plus') item.qty += 1;
-      if (action === 'minus') item.qty -= 1;
-      if (action === 'remove') item.qty = 0;
+  const message = buildWhatsAppMessage(BC.cart);
 
-      BC.cart = BC.cart.filter((entry) => entry.qty > 0);
+  trackMetaCheckout(BC.cart, 'whatsapp');
+  await savePendingOrder(BC.cart, message, 'whatsapp');
 
-      saveCart();
-      renderCart();
-    }
+  openWhatsApp(message);
+}
 
-    function sendProductQuickWhatsApp(product) {
-      const type =
-        product.category === 'hoodies'
-          ? 'hoodie'
-          : product.category === 'extras'
-            ? product.customDesign
-              ? 'personalizado'
-              : 'producto'
-            : getTypesForProduct(product)[0] || 'basic';
+function buildWhatsAppMessage(items) {
+  const lines = items.map((item, index) => {
+    const category = item.category === 'hoodies' ? 'Hoodie' : item.category === 'extras' ? 'Producto exclusivo' : 'Camiseta';
+    const typeText = item.typeLabel || getTypeLabel(item.type);
 
-      const size =
-        product.category === 'extras'
-          ? product.capacity || product.sizes?.[0] || '20oz'
-          : product.category === 'hoodies'
-            ? product.sizes?.[0] || 'L'
-            : getSizesForType(product, type)[0] || 'Por confirmar';
+    return `${index + 1}. ${item.title} | ${category} | ${typeText} | Talla: ${item.size} | Color: ${item.color} | Cant: ${item.qty} | ${MONEY.format(
+      item.unitPrice * item.qty
+    )}`;
+  });
 
-      const item = {
-        title: product.title,
-        anime: product.anime,
-        category: product.category,
-        type,
-        typeLabel: getTypeLabel(type),
-        size,
-        color: product.category === 'extras' ? getAvailableColors(product)[0]?.name || 'Por confirmar' : 'Por confirmar',
-        qty: 1,
-        unitPrice: getUnitPriceForVariant(product, type, size),
-      };
+  const total = items.reduce((sum, item) => sum + item.unitPrice * item.qty, 0);
 
-      openWhatsApp(buildWhatsAppMessage([item]));
-    }
+  return [
+    'Hola BlackCat, quiero consultar este pedido:',
+    '',
+    ...lines,
+    '',
+    `Total estimado: ${MONEY.format(total)}`,
+    '',
+    'Quedo pendiente para confirmar disponibilidad, pago y entrega.',
+  ].join('\n');
+}
 
-    function sendCartToWhatsApp() {
-      if (!BC.cart.length) return;
-
-      openWhatsApp(buildWhatsAppMessage(BC.cart));
-    }
-
-    function buildWhatsAppMessage(items) {
-      const lines = items.map((item, index) => {
-        const category = item.category === 'hoodies' ? 'Hoodie' : item.category === 'extras' ? 'Producto exclusivo' : 'Camiseta';
-        const typeText = item.typeLabel || getTypeLabel(item.type);
-
-        return `${index + 1}. ${item.title} | ${category} | ${typeText} | Talla: ${item.size} | Color: ${item.color} | Cant: ${item.qty} | ${MONEY.format(
-          item.unitPrice * item.qty
-        )}`;
-      });
-
-      const total = items.reduce((sum, item) => sum + item.unitPrice * item.qty, 0);
-
-      return [
-        'Hola BlackCat, quiero consultar este pedido:',
-        '',
-        ...lines,
-        '',
-        `Total estimado: ${MONEY.format(total)}`,
-        '',
-        'Quedo pendiente para confirmar disponibilidad, pago y entrega.',
-      ].join('\n');
-    }
-
-    function openWhatsApp(message) {
-      window.open(`${whatsappBaseUrl()}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
-    }
-
+function openWhatsApp(message) {
+  window.open(`${whatsappBaseUrl()}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+}
     function openCart() {
       closeDrawer(true);
       el.cartPanel?.classList.add('open');
