@@ -923,8 +923,7 @@
       $('#qtyMinus')?.addEventListener('click', () => changeQty(-1));
       $('#qtyPlus')?.addEventListener('click', () => changeQty(1));
 
-      el.addToCartBtn?.addEventListener('click', addSelectedToCart);
-      el.buyNowBtn?.addEventListener('click', buySelectedNow);
+      // Los botones del modal se enlazan en renderModal() para evitar eventos duplicados.
 
       document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
@@ -1263,9 +1262,8 @@
 
         if (!product) return;
 
-        $('.shirt-media', card)?.addEventListener('click', () => openProduct(product));
-        $('.js-open-product', card)?.addEventListener('click', () => openProduct(product));
-        $('.js-whatsapp-product', card)?.addEventListener('click', () => sendProductQuickWhatsApp(product));
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', () => openProduct(product));
       });
     }
 
@@ -1282,13 +1280,6 @@
 
       const categoryLabel =
         product.category === 'hoodies' ? 'HOODIE' : product.category === 'extras' ? 'EXCLUSIVO' : product.anime;
-
-      const commerceLabel =
-        product.category === 'hoodies'
-          ? 'Hoodie'
-          : product.category === 'extras'
-            ? product.capacity || 'Producto'
-            : getTypesForProduct(product).map(getTypeLabel).join(' / ');
 
       const priceLabel =
         product.category === 'hoodies'
@@ -1308,23 +1299,16 @@
             <div class="card-title-block">
               <span class="mini-badge">${escapeHTML(categoryLabel)}</span>
               <h3>${escapeHTML(product.title)}</h3>
-              <p>${escapeHTML(product.designTitle || product.character || product.anime || 'BlackCat')}</p>
+              <p>${escapeHTML(product.anime || 'BlackCat')}</p>
             </div>
 
             <div class="card-commerce">
               <strong>${priceLabel}</strong>
-              <span>${escapeHTML(commerceLabel)}</span>
-            </div>
-
-            <div class="card-actions product-card-actions-v12">
-              <button class="btn-card primary js-open-product" type="button">Ver opciones</button>
-              <button class="btn-card ghost js-whatsapp-product" type="button">WhatsApp</button>
             </div>
           </div>
         </article>
       `;
     }
-
     function renderEmptyState() {
       const message =
         BC.view === 'hoodies'
@@ -1546,11 +1530,26 @@
         const unitPrice = getSelectedUnitPrice();
         const total = unitPrice * BC.selectedVariant.qty;
 
-        el.modalPrice.textContent = `${MONEY.format(unitPrice)} c/u · Total ${MONEY.format(total)}`;
+        el.modalPrice.textContent = MONEY.format(total);
       }
 
-      if (el.addToCartBtn) el.addToCartBtn.disabled = false;
-      if (el.buyNowBtn) el.buyNowBtn.disabled = false;
+      if (el.addToCartBtn) {
+        el.addToCartBtn.disabled = false;
+        el.addToCartBtn.onclick = (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          addSelectedToCart();
+        };
+      }
+
+      if (el.buyNowBtn) {
+        el.buyNowBtn.disabled = false;
+        el.buyNowBtn.onclick = (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          buySelectedNow();
+        };
+      }
     }
 
     function updateModalOptionLabels(product) {
@@ -1752,6 +1751,74 @@
       return getUnitPriceForVariant(BC.selectedProduct, BC.selectedVariant.type, BC.selectedVariant.size);
     }
 
+    function renderCart() {
+      if (!el.cartItems) return;
+
+      if (!BC.cart.length) {
+        el.cartItems.innerHTML = '<p class="cart-empty">Tu carrito está vacío.</p>';
+      } else {
+        el.cartItems.innerHTML = BC.cart.map((item, index) => `
+          <div class="cart-item">
+            <img src="${escapeAttr(item.image || FALLBACK_PRODUCT_IMAGE)}" alt="${escapeAttr(item.title || 'Producto')}">
+            <div class="cart-info">
+              <strong>${escapeHTML(item.title || 'Producto')}</strong>
+              <span class="cart-meta">${escapeHTML(item.typeLabel || getTypeLabel(item.type))} · ${escapeHTML(item.size || '')} · ${escapeHTML(item.color || '')}</span>
+              <span class="cart-meta">Cant: ${Number(item.qty || 1)} · ${MONEY.format(Number(item.unitPrice || 0) * Number(item.qty || 1))}</span>
+            </div>
+            <div class="qty-mini">
+              <button type="button" data-cart-minus="${index}">-</button>
+              <span>${Number(item.qty || 1)}</span>
+              <button type="button" data-cart-plus="${index}">+</button>
+            </div>
+            <button class="cart-remove" type="button" data-cart-remove="${index}">×</button>
+          </div>
+        `).join('');
+      }
+
+      const total = BC.cart.reduce((sum, item) => sum + Number(item.unitPrice || 0) * Number(item.qty || 1), 0);
+      const count = BC.cart.reduce((sum, item) => sum + Number(item.qty || 1), 0);
+
+      if (el.cartTotal) el.cartTotal.textContent = MONEY.format(total);
+      if (el.cartCount) el.cartCount.textContent = count;
+      if (el.bottomCartCount) el.bottomCartCount.textContent = count;
+
+      $$('[data-cart-minus]', el.cartItems).forEach((btn) => {
+        btn.addEventListener('click', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const index = Number(btn.dataset.cartMinus);
+          if (!BC.cart[index]) return;
+          BC.cart[index].qty = Math.max(1, Number(BC.cart[index].qty || 1) - 1);
+          saveCart();
+          renderCart();
+        });
+      });
+
+      $$('[data-cart-plus]', el.cartItems).forEach((btn) => {
+        btn.addEventListener('click', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const index = Number(btn.dataset.cartPlus);
+          if (!BC.cart[index]) return;
+          BC.cart[index].qty = Number(BC.cart[index].qty || 1) + 1;
+          saveCart();
+          renderCart();
+        });
+      });
+
+      $$('[data-cart-remove]', el.cartItems).forEach((btn) => {
+        btn.addEventListener('click', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const index = Number(btn.dataset.cartRemove);
+          if (!Number.isInteger(index)) return;
+          BC.cart.splice(index, 1);
+          saveCart();
+          renderCart();
+        });
+      });
+    }
+
     function addSelectedToCart() {
       const product = BC.selectedProduct;
 
@@ -1767,9 +1834,11 @@
       }
 
       saveCart();
-      renderCart();
+      if (typeof renderCart === 'function') {
+        renderCart();
+      }
       closeModal();
-      openCart();
+      setTimeout(() => openCart(), 30);
     }
 function trackMetaCheckout(items = [], channel = 'whatsapp') {
   const total = items.reduce((sum, item) => sum + Number(item.unitPrice || 0) * Number(item.qty || 1), 0);
@@ -1832,14 +1901,9 @@ async function buySelectedNow() {
   if (!product) return;
 
   const item = buildCartItem(product);
-  const message = buildWhatsAppMessage([item]);
 
-  trackMetaCheckout([item], 'whatsapp');
-  await savePendingOrder([item], message, 'whatsapp');
-
-  openWhatsApp(message);
+  openCheckoutOptions([item]);
 }
-
 function buildCartItem(product) {
   const unitPrice = getSelectedUnitPrice();
   const key = `${product.id}-${BC.selectedVariant.type}-${BC.selectedVariant.size}-${BC.selectedVariant.color}`;
@@ -1902,14 +1966,8 @@ async function sendProductQuickWhatsApp(product) {
 async function sendCartToWhatsApp() {
   if (!BC.cart.length) return;
 
-  const message = buildWhatsAppMessage(BC.cart);
-
-  trackMetaCheckout(BC.cart, 'whatsapp');
-  await savePendingOrder(BC.cart, message, 'whatsapp');
-
-  openWhatsApp(message);
+  openCheckoutOptions(BC.cart);
 }
-
 function buildWhatsAppMessage(items) {
   const lines = items.map((item, index) => {
     const category = item.category === 'hoodies' ? 'Hoodie' : item.category === 'extras' ? 'Producto exclusivo' : 'Camiseta';
@@ -1935,6 +1993,67 @@ function buildWhatsAppMessage(items) {
 
 function openWhatsApp(message) {
   window.open(`${whatsappBaseUrl()}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+}
+function openCheckoutOptions(items) {
+  const total = items.reduce((s, i) => s + Number(i.unitPrice || 0) * Number(i.qty || 1), 0);
+  const message = buildWhatsAppMessage(items);
+
+  const html = `
+    <div id="bcCheckoutOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;z-index:999999;padding:14px;box-sizing:border-box;">
+      <div style="width:100%;max-width:500px;max-height:88vh;overflow-y:auto;background:#111;border-radius:16px;padding:18px;color:white;box-sizing:border-box;">
+        <button id="bcCloseCheckoutTop" type="button" style="float:right;background:rgba(255,255,255,.1);color:white;border:0;border-radius:999px;width:32px;height:32px;font-size:18px;cursor:pointer;">×</button>
+
+        <h2 style="margin:0 0 15px;">Finalizar compra</h2>
+
+        ${items.map(i => `
+          <div style="margin-bottom:10px;">
+            <strong>${escapeHTML(i.title)}</strong><br>
+            Talla: ${escapeHTML(i.size)} | Color: ${escapeHTML(i.color)}<br>
+            Cant: ${i.qty} | ${MONEY.format(Number(i.unitPrice || 0) * Number(i.qty || 1))}
+          </div>
+        `).join("")}
+
+        <hr>
+        <h3>Total: ${MONEY.format(total)}</h3>
+
+        <button id="bcWhatsappBtn" style="width:100%;padding:13px;border:none;border-radius:8px;background:#25D366;color:white;font-size:16px;margin-bottom:10px;cursor:pointer;">
+          🟢 Comprar por WhatsApp
+        </button>
+
+        <button id="bcCardBtn" style="width:100%;padding:13px;border:none;border-radius:8px;background:#7b2ff7;color:white;font-size:16px;cursor:pointer;">
+          💳 Pagar con tarjeta
+        </button>
+
+        <button id="bcCloseCheckoutBtn" style="width:100%;padding:12px;border:none;background:transparent;color:#aaa;margin-top:10px;cursor:pointer;">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('bcCheckoutOverlay')?.remove();
+  document.body.insertAdjacentHTML('beforeend', html);
+
+  document.getElementById('bcWhatsappBtn').onclick = async () => {
+    document.getElementById('bcCheckoutOverlay')?.remove();
+
+    trackMetaCheckout(items, 'whatsapp');
+    await savePendingOrder(items, message, 'whatsapp');
+
+    openWhatsApp(message);
+  };
+
+  document.getElementById('bcCardBtn').onclick = () => {
+    alert('Próximamente pago con tarjeta Wompi.');
+  };
+
+  document.getElementById('bcCloseCheckoutBtn').onclick = () => {
+    document.getElementById('bcCheckoutOverlay')?.remove();
+  };
+
+  document.getElementById('bcCloseCheckoutTop').onclick = () => {
+    document.getElementById('bcCheckoutOverlay')?.remove();
+  };
 }
     function openCart() {
       closeDrawer(true);
@@ -2430,18 +2549,52 @@ function openWhatsApp(message) {
             height:70px;
           }
         }
-      `;
+      
 
+        #categorias,
+        #categorias .container,
+        #categorias .section-head,
+        #categorias .series-head,
+        #categorias .series-controls{
+          overflow: visible !important;
+        }
+
+        #categorias .series-head{
+          padding-right: 22px !important;
+          box-sizing: border-box !important;
+        }
+
+        #categorias .series-controls{
+          padding-right: 18px !important;
+          margin-right: 8px !important;
+          box-sizing: border-box !important;
+        }
+
+        #categorias .series-clear{
+          margin-right: 14px !important;
+          transform: translateX(-8px) !important;
+          box-sizing: border-box !important;
+        }
+
+        @media (max-width: 480px){
+          #categorias .series-head{
+            padding-right: 26px !important;
+          }
+
+          #categorias .series-controls{
+            padding-right: 22px !important;
+            margin-right: 10px !important;
+          }
+
+          #categorias .series-clear{
+            min-width: 96px !important;
+            transform: translateX(-10px) !important;
+          }
+        }
+
+      `;
       document.head.appendChild(style);
     }
-
-
-    /* =====================================================
-      BLACKCAT CLUB - POPUP DE FIDELIZACIÓN
-      Guarda leads localmente y envía el correo automáticamente
-      usando Supabase Edge Function + Resend.
-    ===================================================== */
-
     const BC_NEWSLETTER = {
       coupon: 'BLACKCAT10',
       discountText: '10% OFF en tu primera compra',
@@ -2450,7 +2603,6 @@ function openWhatsApp(message) {
       dismissedKey: 'blackcat_club_dismissed_at_v1',
       dismissHours: 48,
     };
-
     function initNewsletterPopup() {
       if (BC.settings?.leadPopupEnabled !== true) return;
       if (document.getElementById('bcClubPopup')) return;
