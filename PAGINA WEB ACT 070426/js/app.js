@@ -1862,7 +1862,7 @@ function trackMetaCheckout(items = [], channel = 'whatsapp') {
   });
 }
 
-async function savePendingOrder(items = [], message = '', channel = 'whatsapp') {
+async function savePendingOrder(items = [], message = '', channel = 'whatsapp', customer = {}) {
   if (!window.supabaseClient || !items.length) return null;
 
   const total = items.reduce((sum, item) => sum + Number(item.unitPrice || 0) * Number(item.qty || 1), 0);
@@ -1878,7 +1878,7 @@ async function savePendingOrder(items = [], message = '', channel = 'whatsapp') 
     status: 'pending',
     source: 'website',
     checkout_channel: channel,
-    customer_phone: '',
+    customer_phone: customer.phone || '',
     whatsapp_message: message,
   };
 
@@ -1924,7 +1924,6 @@ function buildCartItem(product) {
     unitPrice,
   };
 }
-
 async function sendProductQuickWhatsApp(product) {
   const type =
     product.category === 'hoodies'
@@ -1994,13 +1993,133 @@ function buildWhatsAppMessage(items) {
 function openWhatsApp(message) {
   window.open(`${whatsappBaseUrl()}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
 }
+function getCheckoutCustomerData(required = true) {
+  const name = document.getElementById('bcCustomerName')?.value.trim() || '';
+  const phone = document.getElementById('bcCustomerPhone')?.value.trim() || '';
+  const department = document.getElementById('bcCustomerDepartment')?.value.trim() || '';
+  const municipality = document.getElementById('bcCustomerMunicipality')?.value.trim() || '';
+  const address = document.getElementById('bcCustomerAddress')?.value.trim() || '';
+  const note = document.getElementById('bcCustomerNote')?.value.trim() || '';
+
+  const phoneDigits = phone.replace(/\D/g, '');
+  const hasAnyData = name || phone || department || municipality || address || note;
+
+  if (!required && !hasAnyData) return null;
+
+  if (!name) {
+    alert('Ingresa tu nombre completo.');
+    return null;
+  }
+
+  if (phoneDigits.length < 8) {
+    alert('Ingresa un número de WhatsApp válido.');
+    return null;
+  }
+
+  if (!department) {
+    alert('Selecciona tu departamento.');
+    return null;
+  }
+
+  if (!municipality) {
+    alert('Ingresa tu municipio.');
+    return null;
+  }
+
+  if (!address) {
+    alert('Ingresa tu dirección o punto de entrega.');
+    return null;
+  }
+
+  return {
+    name,
+    phone: phoneDigits.length === 8 ? `503${phoneDigits}` : phoneDigits,
+    department,
+    municipality,
+    address,
+    note,
+  };
+}
+
+function buildCustomerDetailsText(customer = {}) {
+  if (!customer) return '';
+
+  return [
+    'Datos del cliente:',
+    `Nombre: ${customer.name || ''}`,
+    `WhatsApp: ${customer.phone || ''}`,
+    `Departamento: ${customer.department || ''}`,
+    `Municipio: ${customer.municipality || ''}`,
+    `Dirección/Punto de entrega: ${customer.address || ''}`,
+    customer.note ? `Nota: ${customer.note}` : '',
+  ].filter(Boolean).join('\n');
+}
+async function payWithWompi(items = [], message = '', customer = {}) {
+  if (!items.length) return;
+
+  const btn = document.getElementById('bcCardBtn');
+  const originalText = btn?.textContent || '💳 Pagar con tarjeta';
+
+  try {
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Creando pago seguro...';
+      btn.style.opacity = '.75';
+      btn.style.cursor = 'wait';
+    }
+
+    const total = items.reduce(
+      (sum, item) => sum + Number(item.unitPrice || 0) * Number(item.qty || 1),
+      0
+    );
+
+    const response = await fetch('/.netlify/functions/create-wompi-link', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        items,
+        message,
+        total,
+        customer,
+      }),
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok || !data.urlEnlace) {
+      throw new Error(data.error || data.detail || 'No se pudo crear el pago con tarjeta.');
+    }
+
+    const wompiMessage = `${message}
+
+Referencia Wompi: ${data.orderRef || ''}`;
+
+    trackMetaCheckout(items, 'wompi');
+    await savePendingOrder(items, wompiMessage, 'wompi', customer);
+
+    document.getElementById('bcCheckoutOverlay')?.remove();
+    window.location.href = data.urlEnlace;
+  } catch (error) {
+    console.warn('BlackCat: no se pudo iniciar pago Wompi.', error);
+    alert('No se pudo abrir el pago con tarjeta. Puedes intentar de nuevo o finalizar por WhatsApp.');
+
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = originalText;
+      btn.style.opacity = '1';
+      btn.style.cursor = 'pointer';
+    }
+  }
+}
 function openCheckoutOptions(items) {
   const total = items.reduce((s, i) => s + Number(i.unitPrice || 0) * Number(i.qty || 1), 0);
   const message = buildWhatsAppMessage(items);
 
   const html = `
     <div id="bcCheckoutOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;z-index:999999;padding:14px;box-sizing:border-box;">
-      <div style="width:100%;max-width:500px;max-height:88vh;overflow-y:auto;background:#111;border-radius:16px;padding:18px;color:white;box-sizing:border-box;">
+      <div style="width:100%;max-width:520px;max-height:88vh;overflow-y:auto;background:#111;border-radius:16px;padding:18px;color:white;box-sizing:border-box;">
         <button id="bcCloseCheckoutTop" type="button" style="float:right;background:rgba(255,255,255,.1);color:white;border:0;border-radius:999px;width:32px;height:32px;font-size:18px;cursor:pointer;">×</button>
 
         <h2 style="margin:0 0 15px;">Finalizar compra</h2>
@@ -2013,8 +2132,44 @@ function openCheckoutOptions(items) {
           </div>
         `).join("")}
 
-        <hr>
-        <h3>Total: ${MONEY.format(total)}</h3>
+        <hr style="border-color:rgba(255,255,255,.12);">
+        <h3 style="margin:12px 0;">Total: ${MONEY.format(total)}</h3>
+
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px;margin:14px 0;">
+          <h3 style="margin:0 0 10px;font-size:16px;">Datos para tu pedido</h3>
+
+          <input id="bcCustomerName" type="text" placeholder="Nombre completo" style="width:100%;margin-bottom:9px;padding:12px;border-radius:9px;border:1px solid rgba(255,255,255,.18);background:#191919;color:white;box-sizing:border-box;">
+
+          <input id="bcCustomerPhone" type="tel" placeholder="WhatsApp" style="width:100%;margin-bottom:9px;padding:12px;border-radius:9px;border:1px solid rgba(255,255,255,.18);background:#191919;color:white;box-sizing:border-box;">
+
+          <select id="bcCustomerDepartment" style="width:100%;margin-bottom:9px;padding:12px;border-radius:9px;border:1px solid rgba(255,255,255,.18);background:#191919;color:white;box-sizing:border-box;">
+            <option value="">Departamento</option>
+            <option>San Salvador</option>
+            <option>La Libertad</option>
+            <option>Santa Ana</option>
+            <option>San Miguel</option>
+            <option>Sonsonate</option>
+            <option>Usulután</option>
+            <option>Ahuachapán</option>
+            <option>La Paz</option>
+            <option>La Unión</option>
+            <option>Cuscatlán</option>
+            <option>Chalatenango</option>
+            <option>Morazán</option>
+            <option>San Vicente</option>
+            <option>Cabañas</option>
+          </select>
+
+          <input id="bcCustomerMunicipality" type="text" placeholder="Municipio" style="width:100%;margin-bottom:9px;padding:12px;border-radius:9px;border:1px solid rgba(255,255,255,.18);background:#191919;color:white;box-sizing:border-box;">
+
+          <textarea id="bcCustomerAddress" placeholder="Dirección o punto de entrega" rows="2" style="width:100%;margin-bottom:9px;padding:12px;border-radius:9px;border:1px solid rgba(255,255,255,.18);background:#191919;color:white;box-sizing:border-box;resize:none;"></textarea>
+
+          <textarea id="bcCustomerNote" placeholder="Nota opcional" rows="2" style="width:100%;padding:12px;border-radius:9px;border:1px solid rgba(255,255,255,.18);background:#191919;color:white;box-sizing:border-box;resize:none;"></textarea>
+        </div>
+
+        <div style="background:rgba(37,211,102,.10);border:1px solid rgba(37,211,102,.35);border-radius:12px;padding:11px;margin-bottom:12px;font-size:12px;line-height:1.35;color:#dfffea;">
+          🔒 El pago con tarjeta se procesa de forma segura por Wompi. BlackCat no guarda número de tarjeta, CVV ni datos bancarios.
+        </div>
 
         <button id="bcWhatsappBtn" style="width:100%;padding:13px;border:none;border-radius:8px;background:#25D366;color:white;font-size:16px;margin-bottom:10px;cursor:pointer;">
           🟢 Comprar por WhatsApp
@@ -2035,16 +2190,25 @@ function openCheckoutOptions(items) {
   document.body.insertAdjacentHTML('beforeend', html);
 
   document.getElementById('bcWhatsappBtn').onclick = async () => {
+    const customer = getCheckoutCustomerData(false);
+    const finalMessage = customer
+      ? `${message}\n\n${buildCustomerDetailsText(customer)}`
+      : message;
+
     document.getElementById('bcCheckoutOverlay')?.remove();
 
     trackMetaCheckout(items, 'whatsapp');
-    await savePendingOrder(items, message, 'whatsapp');
+    await savePendingOrder(items, finalMessage, 'whatsapp', customer || {});
 
-    openWhatsApp(message);
+    openWhatsApp(finalMessage);
   };
 
-  document.getElementById('bcCardBtn').onclick = () => {
-    alert('Próximamente pago con tarjeta Wompi.');
+  document.getElementById('bcCardBtn').onclick = async () => {
+    const customer = getCheckoutCustomerData(true);
+    if (!customer) return;
+
+    const finalMessage = `${message}\n\n${buildCustomerDetailsText(customer)}`;
+    await payWithWompi(items, finalMessage, customer);
   };
 
   document.getElementById('bcCloseCheckoutBtn').onclick = () => {
