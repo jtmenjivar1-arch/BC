@@ -3405,3 +3405,366 @@ html{scroll-behavior:smooth;}
     gap:0;
   }
 }
+
+
+/* ===== BLACKCAT HOTFIX CHECKOUT/TARJETAS 2026-06-20 ===== */
+/* Tarjetas: usar espacio sin botones y mostrar serie */
+.shirt-card .shirt-body,
+.improved-card .shirt-body,
+.product-card-v12 .shirt-body{
+  min-height:132px !important;
+  padding:14px 12px 16px !important;
+  display:flex !important;
+  flex-direction:column !important;
+  justify-content:space-between !important;
+  gap:8px !important;
+  text-align:left !important;
+}
+
+.shirt-card .card-title-block,
+.product-card-v12 .card-title-block{
+  min-width:0 !important;
+  width:100% !important;
+}
+
+.shirt-card .card-title-block h3,
+.product-card-v12 .card-title-block h3{
+  font-size:15px !important;
+  line-height:1.05 !important;
+  min-height:auto !important;
+  margin:0 !important;
+  color:#fff !important;
+  text-align:left !important;
+  display:-webkit-box !important;
+  -webkit-line-clamp:2 !important;
+  -webkit-box-orient:vertical !important;
+  overflow:hidden !important;
+}
+
+.shirt-card .card-title-block p,
+.product-card-v12 .card-title-block p{
+  display:block !important;
+  font-size:11px !important;
+  line-height:1.18 !important;
+  margin-top:5px !important;
+  color:rgba(255,255,255,.68) !important;
+  font-weight:700 !important;
+  text-align:left !important;
+  min-height:13px !important;
+  max-width:100% !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+}
+
+.shirt-card .card-commerce,
+.product-card-v12 .card-commerce{
+  margin-top:auto !important;
+  padding-top:9px !important;
+  border-top:1px solid rgba(255,255,255,.08) !important;
+  display:block !important;
+  text-align:left !important;
+}
+
+.shirt-card .card-commerce strong,
+.product-card-v12 .card-commerce strong{
+  font-size:13px !important;
+  line-height:1 !important;
+  white-space:nowrap !important;
+}
+
+/* Modal: botones y precio más limpios */
+#buyNowBtn{
+  font-size:0 !important;
+}
+#buyNowBtn::after{
+  content:'Comprar';
+  font-size:13px !important;
+}
+
+.price-box{
+  min-height:auto !important;
+  padding:10px 13px !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  gap:10px !important;
+}
+.price-box > div > div{
+  font-size:12px !important;
+  line-height:1 !important;
+}
+.price-box strong,
+#modalPrice{
+  font-size:17px !important;
+  line-height:1 !important;
+  text-align:right !important;
+  white-space:nowrap !important;
+}
+
+.colors{
+  gap:7px !important;
+}
+.colors .choice{
+  height:36px !important;
+  min-height:36px !important;
+  border-radius:12px !important;
+  padding:0 9px !important;
+}
+.color-dot{
+  width:18px !important;
+  height:18px !important;
+}
+.color-name{
+  font-size:11px !important;
+}
+.colors .choice.active::after{
+  width:19px !important;
+  height:19px !important;
+  font-size:11px !important;
+}
+
+/* Botón Ver todo: evita recorte en móvil */
+.series-head{
+  overflow:visible !important;
+}
+.series-controls{
+  flex:0 0 auto !important;
+  min-width:max-content !important;
+  overflow:visible !important;
+}
+.series-clear{
+  min-width:88px !important;
+  height:40px !important;
+  min-height:40px !important;
+  padding:0 18px !important;
+  font-size:12px !important;
+  line-height:1 !important;
+  box-sizing:border-box !important;
+  overflow:visible !important;
+}
+
+@media(max-width:720px){
+  .shirt-card .shirt-body,
+  .improved-card .shirt-body,
+  .product-card-v12 .shirt-body{
+    min-height:124px !important;
+    padding:12px 10px 14px !important;
+  }
+
+  .shirt-card .card-title-block h3,
+  .product-card-v12 .card-title-block h3{
+    font-size:12.8px !important;
+    line-height:1.08 !important;
+  }
+
+  .shirt-card .card-title-block p,
+  .product-card-v12 .card-title-block p{
+    display:block !important;
+    font-size:10.5px !important;
+  }
+
+  .series-head{
+    align-items:flex-start !important;
+    gap:10px !important;
+  }
+
+  .series-clear{
+    min-width:92px !important;
+    height:38px !important;
+    min-height:38px !important;
+    padding:0 16px !important;
+    font-size:12px !important;
+  }
+
+  .price-box{
+    padding:9px 12px !important;
+  }
+  .price-box strong,
+  #modalPrice{
+    font-size:16px !important;
+  }
+
+  .colors .choice{
+    height:34px !important;
+    min-height:34px !important;
+  }
+}
+
+/* BlackCat V5: precio del modal sin burbuja */
+.modal-price-line{
+  display:flex!important;
+  align-items:baseline!important;
+  gap:7px!important;
+  margin:8px 0 16px!important;
+  padding:0!important;
+  background:transparent!important;
+  border:0!important;
+  color:#fff!important;
+}
+.modal-price-line strong,
+.modal-price-line #modalPrice{
+  font-size:22px!important;
+  line-height:1!important;
+  font-weight:950!important;
+  letter-spacing:-.03em!important;
+  white-space:nowrap!important;
+}
+.modal-price-line span{
+  font-size:11px!important;
+  color:rgba(255,255,255,.62)!important;
+  font-weight:800!important;
+  letter-spacing:.08em!important;
+}
+.price-box{
+  display:none!important;
+}
+
+
+/* =====================================================
+   BLACKCAT V6 - FIX FINAL TARJETAS / MODAL / CARRITO
+   ===================================================== */
+
+/* Tarjetas con misma altura visual */
+.shirt-grid,
+#shirtGrid{
+  align-items: stretch !important;
+}
+
+.shirt-card,
+.product-card-v12{
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.shirt-card .shirt-media,
+.product-card-v12 .shirt-media{
+  flex: 0 0 auto !important;
+}
+
+.shirt-card .shirt-body,
+.product-card-v12 .shirt-body{
+  flex: 1 1 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  min-height: 132px !important;
+  padding: 12px 12px 14px !important;
+  box-sizing: border-box !important;
+}
+
+.shirt-card .card-title-block,
+.product-card-v12 .card-title-block{
+  min-height: 72px !important;
+  display: block !important;
+}
+
+.shirt-card .card-title-block h3,
+.product-card-v12 .card-title-block h3{
+  min-height: 30px !important;
+  max-height: 34px !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  line-height: 1.08 !important;
+}
+
+.shirt-card .card-title-block p,
+.product-card-v12 .card-title-block p{
+  min-height: 14px !important;
+  max-height: 16px !important;
+  display: block !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.shirt-card .card-commerce,
+.product-card-v12 .card-commerce{
+  margin-top: auto !important;
+  padding-top: 10px !important;
+  border-top: 1px solid rgba(255,255,255,.08) !important;
+}
+
+/* Botones del modal alineados, mismo alto y texto centrado */
+.modal-actions{
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 10px !important;
+  align-items: stretch !important;
+}
+
+.modal-actions .btn,
+#addToCartBtn,
+#buyNowBtn{
+  min-height: 48px !important;
+  height: 48px !important;
+  padding: 0 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  line-height: 1.08 !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  white-space: normal !important;
+  border-radius: 14px !important;
+}
+
+#buyNowBtn{
+  font-size: 12px !important;
+}
+
+#buyNowBtn::after{
+  content: none !important;
+}
+
+/* Precio más limpio, sin burbuja pesada */
+.price-box{
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 8px 0 4px !important;
+  margin-top: 12px !important;
+  border-radius: 0 !important;
+}
+
+.price-box span{
+  color: rgba(255,255,255,.68) !important;
+  font-weight: 800 !important;
+}
+
+.price-box strong,
+#modalPrice{
+  color: #fff !important;
+  font-size: 20px !important;
+  font-weight: 950 !important;
+}
+
+@media(max-width:720px){
+  .shirt-card .shirt-body,
+  .product-card-v12 .shirt-body{
+    min-height: 134px !important;
+    padding: 11px 10px 13px !important;
+  }
+
+  .shirt-card .card-title-block,
+  .product-card-v12 .card-title-block{
+    min-height: 74px !important;
+  }
+
+  .modal-actions{
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  .modal-actions .btn,
+  #addToCartBtn,
+  #buyNowBtn{
+    min-height: 46px !important;
+    height: 46px !important;
+    font-size: 11.5px !important;
+  }
+}
