@@ -225,7 +225,7 @@ src="https://www.facebook.com/tr?id=1550108226705883&ev=PageView&noscript=1"
   <aside class="cart-panel" id="cartPanel" aria-hidden="true">
     <div class="cart-head"><strong>Carrito</strong><button id="cartClose">✕</button></div>
     <div class="cart-items" id="cartItems"></div>
-    <div class="cart-footer"><div class="cart-total">Total: <strong id="cartTotal">$0.00</strong></div><button class="btn btn-primary full" id="checkoutBtn">Enviar por WhatsApp</button></div>
+    <div class="cart-footer"><div class="cart-total">Total: <strong id="cartTotal">$0.00</strong></div><button class="btn btn-primary full" id="checkoutBtn">Finalizar compra</button></div>
   </aside>
 
   <div class="backdrop" id="backdrop"></div>
@@ -238,12 +238,12 @@ src="https://www.facebook.com/tr?id=1550108226705883&ev=PageView&noscript=1"
         <div>
           <h3 class="modal-title" id="modalTitle"></h3>
           <div class="modal-sub" id="modalSubtitle"></div>
+          <div class="modal-price-line"><strong id="modalPrice">Selecciona opciones</strong><span>USD</span></div>
           <div class="option-group"><label>Tipo de camisa</label><div class="choices" id="typeChoices"></div></div>
           <div class="option-group"><label>Talla</label><div class="choices" id="sizeChoices"></div></div>
           <div class="option-group"><label>Color</label><div class="choices colors" id="colorChoices"></div></div>
           <div class="option-group"><label>Cantidad</label><div class="qty-row"><button class="qty-btn" id="qtyMinus">-</button><div class="qty-value" id="qtyValue">1</div><button class="qty-btn" id="qtyPlus">+</button></div></div>
-          <div class="price-box"><div><div>Pedido</div></div><strong id="modalPrice">Selecciona opciones</strong></div>
-          <div class="modal-actions"><button class="btn btn-primary" id="addToCartBtn" disabled>Agregar al carrito</button><button class="btn btn-green" id="buyNowBtn" disabled>Comprar por WhatsApp</button></div>
+          <div class="modal-actions"><button class="btn btn-primary" id="addToCartBtn" disabled>Agregar al carrito</button><button class="btn btn-green" id="buyNowBtn" disabled>Comprar</button></div>
         </div>
       </div>
     </div>
