@@ -793,9 +793,13 @@ h2{
 
 .cart-total{
   display:flex;
-  justify-content:space-between;
+  flex-direction:column;
+  gap:5px;
   margin-bottom:12px;
 }
+
+.cart-total span{display:flex;justify-content:space-between;gap:12px}
+.cart-total small{color:rgba(255,255,255,.68);margin-top:3px}
 
 .modal{
   position:fixed;
