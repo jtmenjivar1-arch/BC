@@ -29,6 +29,9 @@
       currency: 'USD',
     });
 
+    const SHIPPING_FEE = 1.99;
+    const FREE_SHIPPING_THRESHOLD = 50;
+
     const SERIES_IMAGES = {
       BlackCat: 'assets/logo-gato.png',
     };
@@ -138,6 +141,8 @@
       cartCount: null,
       bottomCartCount: null,
       cartTotal: null,
+      cartSubtotal: null,
+      cartShipping: null,
       backdrop: null,
       modal: null,
       modalImage: null,
@@ -168,6 +173,7 @@
       renderSeries();
       showCatalog(false);
       renderCart();
+      openProductFromUrl();
     }
 
     function cacheElements() {
@@ -180,6 +186,8 @@
       el.cartCount = $('#cartCount');
       el.bottomCartCount = $('#bottomCartCount');
       el.cartTotal = $('#cartTotal');
+      el.cartSubtotal = $('#cartSubtotal');
+      el.cartShipping = $('#cartShipping');
       el.backdrop = $('#backdrop');
       el.modal = $('#productModal');
       el.modalImage = $('#modalImage');
@@ -930,6 +938,12 @@
           closePanels();
         }
       });
+
+      window.addEventListener('popstate', () => {
+        const hasProduct = new URLSearchParams(window.location.search).has('product');
+        if (hasProduct) openProductFromUrl();
+        else closeModal();
+      });
     }
 
     function showCatalog(scroll = true) {
@@ -1417,6 +1431,69 @@
       return Math.round((Number(value) || 0) * 100) / 100;
     }
 
+    function calculateOrderTotals(items = []) {
+      const subtotal = roundMoney(items.reduce(
+        (sum, item) => sum + Number(item.unitPrice || 0) * Number(item.qty || 1),
+        0
+      ));
+      const qualifiesForFreeShipping = subtotal >= FREE_SHIPPING_THRESHOLD;
+      const shipping = subtotal > 0 && !qualifiesForFreeShipping ? SHIPPING_FEE : 0;
+      return { subtotal, shipping, total: roundMoney(subtotal + shipping) };
+    }
+
+    function productSlug(product = {}) {
+      return `${String(product.id || '')}-${normalize(product.title).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
+    }
+
+    function getProductUrl(product) {
+      const url = new URL(window.location.href);
+      url.searchParams.set('product', productSlug(product));
+      url.hash = 'catalogo';
+      return url.toString();
+    }
+
+    function setProductUrl(product) {
+      if (!product) return;
+      const url = new URL(getProductUrl(product));
+      if (new URL(window.location.href).searchParams.get('product') === url.searchParams.get('product')) return;
+      window.history.pushState({ product: String(product.id) }, '', url);
+    }
+
+    function clearProductUrl() {
+      const url = new URL(window.location.href);
+      if (!url.searchParams.has('product')) return;
+      url.searchParams.delete('product');
+      window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+    }
+
+    function openProductFromUrl() {
+      const value = new URLSearchParams(window.location.search).get('product');
+      if (!value) return;
+      const product = BC.products.find((item) => value === productSlug(item) || value === String(item.id));
+      if (product) openProduct(product, false);
+    }
+
+    function trackMetaEvent(name, params = {}) {
+      if (typeof fbq === 'function') fbq('track', name, params);
+    }
+
+    function itemEventData(item = {}) {
+      return {
+        content_ids: [String(item.id || '')],
+        content_name: item.title || 'Producto BlackCat',
+        content_type: 'product',
+        value: roundMoney(Number(item.unitPrice || 0) * Number(item.qty || 1)),
+        currency: 'USD',
+        contents: [{ id: String(item.id || ''), quantity: Number(item.qty || 1), item_price: Number(item.unitPrice || 0) }],
+      };
+    }
+
+    function productEventData(product = {}) {
+      const type = product.category === 'hoodies' ? 'hoodie' : product.category === 'extras' ? 'producto' : getTypesForProduct(product)[0] || 'basic';
+      const size = getSizesForType(product, type)[0] || '';
+      return itemEventData({ id: product.id, title: product.title, qty: 1, unitPrice: getUnitPriceForVariant(product, type, size) });
+    }
+
     function getUnitPriceForVariant(product, type, size) {
       if (!product) return 0;
 
@@ -1476,7 +1553,7 @@
       return getMoneyValue(product.price, 0);
     }
 
-    function openProduct(product) {
+    function openProduct(product, updateUrl = true) {
       BC.selectedProduct = product;
 
       const firstType =
@@ -1503,6 +1580,8 @@
       el.modal?.setAttribute('aria-hidden', 'false');
       el.backdrop?.classList.add('show');
       document.body.classList.add('modal-open');
+      if (updateUrl) setProductUrl(product);
+      trackMetaEvent('ViewContent', productEventData(product));
     }
 
     function renderModal() {
@@ -1550,6 +1629,7 @@
           buySelectedNow();
         };
       }
+
     }
 
     function updateModalOptionLabels(product) {
@@ -1775,10 +1855,12 @@
         `).join('');
       }
 
-      const total = BC.cart.reduce((sum, item) => sum + Number(item.unitPrice || 0) * Number(item.qty || 1), 0);
+      const totals = calculateOrderTotals(BC.cart);
       const count = BC.cart.reduce((sum, item) => sum + Number(item.qty || 1), 0);
 
-      if (el.cartTotal) el.cartTotal.textContent = MONEY.format(total);
+      if (el.cartSubtotal) el.cartSubtotal.textContent = MONEY.format(totals.subtotal);
+      if (el.cartShipping) el.cartShipping.textContent = totals.shipping ? MONEY.format(totals.shipping) : 'Gratis';
+      if (el.cartTotal) el.cartTotal.textContent = MONEY.format(totals.total);
       if (el.cartCount) el.cartCount.textContent = count;
       if (el.bottomCartCount) el.bottomCartCount.textContent = count;
 
@@ -1834,29 +1916,20 @@
       }
 
       saveCart();
+      trackMetaEvent('AddToCart', itemEventData(item));
       if (typeof renderCart === 'function') {
         renderCart();
       }
       closeModal();
       setTimeout(() => openCart(), 30);
     }
-function trackMetaCheckout(items = [], channel = 'whatsapp') {
-  const total = items.reduce((sum, item) => sum + Number(item.unitPrice || 0) * Number(item.qty || 1), 0);
-
-  if (typeof fbq !== 'function') return;
-
-  fbq('track', 'Lead', {
-    content_name: 'BlackCat pedido WhatsApp',
+function trackMetaCheckout(items = [], channel = 'web') {
+  const totals = calculateOrderTotals(items);
+  trackMetaEvent('InitiateCheckout', {
+    content_ids: items.map((item) => String(item.id || '')),
+    contents: items.map((item) => ({ id: String(item.id || ''), quantity: Number(item.qty || 1), item_price: Number(item.unitPrice || 0) })),
     content_type: 'product',
-    value: total,
-    currency: 'USD',
-    checkout_channel: channel,
-  });
-
-  fbq('track', 'InitiateCheckout', {
-    content_name: 'BlackCat pedido WhatsApp',
-    content_type: 'product',
-    value: total,
+    value: totals.total,
     currency: 'USD',
     checkout_channel: channel,
   });
@@ -1865,7 +1938,7 @@ function trackMetaCheckout(items = [], channel = 'whatsapp') {
 async function savePendingOrder(items = [], message = '', channel = 'whatsapp', customer = {}) {
   if (!window.supabaseClient || !items.length) return null;
 
-  const total = items.reduce((sum, item) => sum + Number(item.unitPrice || 0) * Number(item.qty || 1), 0);
+  const total = calculateOrderTotals(items).total;
   const mainItem = items[0];
 
   const order = {
@@ -1956,7 +2029,7 @@ async function sendProductQuickWhatsApp(product) {
 
   const message = buildWhatsAppMessage([item]);
 
-  trackMetaCheckout([item], 'whatsapp');
+  trackMetaEvent('Lead', { ...itemEventData(item), checkout_channel: 'whatsapp' });
   await savePendingOrder([item], message, 'whatsapp');
 
   openWhatsApp(message);
@@ -1977,16 +2050,18 @@ function buildWhatsAppMessage(items) {
     )}`;
   });
 
-  const total = items.reduce((sum, item) => sum + item.unitPrice * item.qty, 0);
+  const totals = calculateOrderTotals(items);
 
   return [
     'Hola BlackCat, quiero consultar este pedido:',
     '',
     ...lines,
     '',
-    `Total estimado: ${MONEY.format(total)}`,
+    `Subtotal: ${MONEY.format(totals.subtotal)}`,
+    `Envío: ${totals.shipping ? MONEY.format(totals.shipping) : 'Gratis'}`,
+    `Total: ${MONEY.format(totals.total)}`,
     '',
-    'Quedo pendiente para confirmar disponibilidad, pago y entrega.',
+    'Quedo pendiente para confirmar pago y entrega.',
   ].join('\n');
 }
 
@@ -2068,10 +2143,7 @@ async function payWithWompi(items = [], message = '', customer = {}) {
       btn.style.cursor = 'wait';
     }
 
-    const total = items.reduce(
-      (sum, item) => sum + Number(item.unitPrice || 0) * Number(item.qty || 1),
-      0
-    );
+    const total = calculateOrderTotals(items).total;
 
     const response = await fetch('/.netlify/functions/create-wompi-link', {
       method: 'POST',
@@ -2096,7 +2168,6 @@ async function payWithWompi(items = [], message = '', customer = {}) {
 
 Referencia Wompi: ${data.orderRef || ''}`;
 
-    trackMetaCheckout(items, 'wompi');
     await savePendingOrder(items, wompiMessage, 'wompi', customer);
 
     document.getElementById('bcCheckoutOverlay')?.remove();
@@ -2114,8 +2185,9 @@ Referencia Wompi: ${data.orderRef || ''}`;
   }
 }
 function openCheckoutOptions(items) {
-  const total = items.reduce((s, i) => s + Number(i.unitPrice || 0) * Number(i.qty || 1), 0);
+  const totals = calculateOrderTotals(items);
   const message = buildWhatsAppMessage(items);
+  trackMetaCheckout(items, 'web');
 
   const html = `
     <div id="bcCheckoutOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;z-index:999999;padding:14px;box-sizing:border-box;">
@@ -2133,7 +2205,12 @@ function openCheckoutOptions(items) {
         `).join("")}
 
         <hr style="border-color:rgba(255,255,255,.12);">
-        <h3 style="margin:12px 0;">Total: ${MONEY.format(total)}</h3>
+        <div style="margin:12px 0;line-height:1.7;">
+          <div>Subtotal: <strong>${MONEY.format(totals.subtotal)}</strong></div>
+          <div>Envío: <strong>${totals.shipping ? MONEY.format(totals.shipping) : 'Gratis'}</strong></div>
+          <h3 style="margin:4px 0;">Total: ${MONEY.format(totals.total)}</h3>
+          <small style="color:#b9f6ca;">Envío gratis en compras desde $50.</small>
+        </div>
 
         <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px;margin:14px 0;">
           <h3 style="margin:0 0 10px;font-size:16px;">Datos para tu pedido</h3>
@@ -2197,7 +2274,12 @@ function openCheckoutOptions(items) {
 
     document.getElementById('bcCheckoutOverlay')?.remove();
 
-    trackMetaCheckout(items, 'whatsapp');
+    trackMetaEvent('Lead', {
+      content_ids: items.map((item) => String(item.id || '')),
+      value: totals.total,
+      currency: 'USD',
+      checkout_channel: 'whatsapp',
+    });
     await savePendingOrder(items, finalMessage, 'whatsapp', customer || {});
 
     openWhatsApp(finalMessage);
@@ -2242,6 +2324,7 @@ function openCheckoutOptions(items) {
       if (!cartOpen && !drawerOpen) {
         el.backdrop?.classList.remove('show');
       }
+      clearProductUrl();
     }
 
     function closePanels() {
