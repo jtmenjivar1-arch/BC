@@ -33,6 +33,37 @@ function isApprovedPayment(data = {}) {
   return tx.esAprobada === true || tx.EsAprobada === true || String(tx.esAprobada).toLowerCase() === 'true';
 }
 
+function paymentValue(data = {}) {
+  const tx = data.transaccionCompra || data.TransaccionCompra || data;
+  const candidates = [tx.monto, tx.Monto, tx.montoTransaccion, tx.MontoTransaccion, data.monto, data.Monto];
+  const value = candidates.map(Number).find((candidate) => Number.isFinite(candidate) && candidate > 0);
+  return value || 0;
+}
+
+async function sendMetaPurchase({ orderRef, value }) {
+  const pixelId = process.env.META_PIXEL_ID || '1550108226705883';
+  const accessToken = process.env.META_CONVERSIONS_API_TOKEN;
+  if (!pixelId || !accessToken || !orderRef || !value) return { sent: false };
+
+  const response = await fetch(`https://graph.facebook.com/v22.0/${encodeURIComponent(pixelId)}/events?access_token=${encodeURIComponent(accessToken)}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      data: [{
+        event_name: 'Purchase',
+        event_time: Math.floor(Date.now() / 1000),
+        event_id: orderRef,
+        action_source: 'website',
+        event_source_url: process.env.SITE_URL || 'https://blackcatsv.shop/pago-wompi.html',
+        custom_data: { currency: 'USD', value, order_id: orderRef },
+      }],
+    }),
+  });
+
+  if (!response.ok) throw new Error(`Meta CAPI respondió ${response.status}`);
+  return { sent: true };
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return json(405, { error: 'Method Not Allowed' });
@@ -41,6 +72,10 @@ exports.handler = async (event) => {
   const body = event.body || '';
   const apiSecret = process.env.WOMPI_API_SECRET || '';
   const receivedHash = getHeader(event.headers, 'Wompi_Hash') || getHeader(event.headers, 'wompi_hash');
+
+  if (apiSecret && !receivedHash) {
+    return json(401, { error: 'Falta firma de Wompi.' });
+  }
 
   if (apiSecret && receivedHash) {
     const expectedHash = crypto.createHmac('sha256', apiSecret).update(body).digest('hex');
@@ -58,10 +93,20 @@ exports.handler = async (event) => {
 
   const orderRef = findOrderRef(data);
   const approved = isApprovedPayment(data);
+  const value = paymentValue(data);
+  let metaPurchaseSent = false;
+
+  if (approved) {
+    try {
+      metaPurchaseSent = (await sendMetaPurchase({ orderRef, value })).sent;
+    } catch (error) {
+      console.error('BlackCat Meta Purchase:', error.message);
+    }
+  }
 
   // En esta primera integración se confirma el webhook y se deja listo para logs.
   // Para cambiar status a paid con precisión, conviene guardar orderRef en una columna de orders.
-  console.log('BlackCat Wompi webhook:', JSON.stringify({ orderRef, approved }));
+  console.log('BlackCat Wompi webhook:', JSON.stringify({ orderRef, approved, value, metaPurchaseSent }));
 
-  return json(200, { ok: true, orderRef, approved });
+  return json(200, { ok: true, orderRef, approved, metaPurchaseSent });
 };
