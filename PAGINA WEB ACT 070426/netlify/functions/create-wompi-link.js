@@ -2,6 +2,8 @@
 
 const WOMPI_TOKEN_URL = 'https://id.wompi.sv/connect/token';
 const WOMPI_PAYMENT_LINK_URL = 'https://api.wompi.sv/EnlacePago';
+const SHIPPING_FEE = 1.99;
+const FREE_SHIPPING_THRESHOLD = 50;
 
 const json = (statusCode, payload) => ({
   statusCode,
@@ -82,12 +84,12 @@ exports.handler = async (event) => {
     return json(400, { error: 'No hay productos para pagar.' });
   }
 
-  const calculatedTotal = money(
+  const subtotal = money(
     items.reduce((sum, item) => sum + Number(item.unitPrice || 0) * Number(item.qty || 1), 0)
   );
-
-  const requestedTotal = money(payload.total || calculatedTotal);
-  const total = calculatedTotal > 0 ? calculatedTotal : requestedTotal;
+  const qualifiesForFreeShipping = subtotal >= FREE_SHIPPING_THRESHOLD;
+  const shipping = subtotal > 0 && !qualifiesForFreeShipping ? SHIPPING_FEE : 0;
+  const total = money(subtotal + shipping);
 
   if (!total || total < 0.01) {
     return json(400, { error: 'El total del pedido no es válido.' });
@@ -175,6 +177,9 @@ exports.handler = async (event) => {
     return json(200, {
       ok: true,
       orderRef,
+      subtotal,
+      shipping,
+      total,
       urlEnlace: wompiData.urlEnlace,
       idEnlace: wompiData.idEnlace || null,
       estaProductivo: wompiData.estaProductivo,
