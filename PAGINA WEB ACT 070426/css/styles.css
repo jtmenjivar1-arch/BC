@@ -3623,30 +3623,20 @@ html{scroll-behavior:smooth;}
 .price-box{
   display:none!important;
 }
-
-
-/* =====================================================
-   BLACKCAT V6 - FIX FINAL TARJETAS / MODAL / CARRITO
-   ===================================================== */
-
-/* Tarjetas con misma altura visual */
 .shirt-grid,
 #shirtGrid{
   align-items: stretch !important;
 }
-
 .shirt-card,
 .product-card-v12{
   height: 100% !important;
   display: flex !important;
   flex-direction: column !important;
 }
-
 .shirt-card .shirt-media,
 .product-card-v12 .shirt-media{
   flex: 0 0 auto !important;
 }
-
 .shirt-card .shirt-body,
 .product-card-v12 .shirt-body{
   flex: 1 1 auto !important;
@@ -3657,13 +3647,11 @@ html{scroll-behavior:smooth;}
   padding: 12px 12px 14px !important;
   box-sizing: border-box !important;
 }
-
 .shirt-card .card-title-block,
 .product-card-v12 .card-title-block{
   min-height: 72px !important;
   display: block !important;
 }
-
 .shirt-card .card-title-block h3,
 .product-card-v12 .card-title-block h3{
   min-height: 30px !important;
@@ -3674,7 +3662,6 @@ html{scroll-behavior:smooth;}
   overflow: hidden !important;
   line-height: 1.08 !important;
 }
-
 .shirt-card .card-title-block p,
 .product-card-v12 .card-title-block p{
   min-height: 14px !important;
@@ -3684,22 +3671,18 @@ html{scroll-behavior:smooth;}
   overflow: hidden !important;
   text-overflow: ellipsis !important;
 }
-
 .shirt-card .card-commerce,
 .product-card-v12 .card-commerce{
   margin-top: auto !important;
   padding-top: 10px !important;
   border-top: 1px solid rgba(255,255,255,.08) !important;
 }
-
-/* Botones del modal alineados, mismo alto y texto centrado */
 .modal-actions{
   display: grid !important;
   grid-template-columns: 1fr 1fr !important;
   gap: 10px !important;
   align-items: stretch !important;
 }
-
 .modal-actions .btn,
 #addToCartBtn,
 #buyNowBtn{
@@ -3724,8 +3707,6 @@ html{scroll-behavior:smooth;}
 #buyNowBtn::after{
   content: none !important;
 }
-
-/* Precio más limpio, sin burbuja pesada */
 .price-box{
   background: transparent !important;
   border: 0 !important;
@@ -3734,41 +3715,62 @@ html{scroll-behavior:smooth;}
   margin-top: 12px !important;
   border-radius: 0 !important;
 }
-
 .price-box span{
   color: rgba(255,255,255,.68) !important;
   font-weight: 800 !important;
 }
-
 .price-box strong,
 #modalPrice{
   color: #fff !important;
   font-size: 20px !important;
   font-weight: 950 !important;
 }
-
 @media(max-width:720px){
   .shirt-card .shirt-body,
   .product-card-v12 .shirt-body{
     min-height: 134px !important;
     padding: 11px 10px 13px !important;
   }
-
   .shirt-card .card-title-block,
   .product-card-v12 .card-title-block{
     min-height: 74px !important;
   }
-
   .modal-actions{
     grid-template-columns: 1fr 1fr !important;
     gap: 8px !important;
   }
-
   .modal-actions .btn,
   #addToCartBtn,
   #buyNowBtn{
     min-height: 46px !important;
     height: 46px !important;
     font-size: 11.5px !important;
+  }
+}
+.shirt-card .shirt-body,
+.improved-card .shirt-body,
+.product-card-v12 .shirt-body {
+  min-height: 88px !important;
+  justify-content: flex-start !important;
+  gap: 6px !important;
+}
+.shirt-card .card-title-block,
+.product-card-v12 .card-title-block {
+  min-height: 30px !important;
+}
+.shirt-card .card-commerce,
+.product-card-v12 .card-commerce {
+  margin-top: 4px !important;
+  padding-top: 6px !important;
+}
+@media (max-width: 720px) {
+  .shirt-card .shirt-body,
+  .improved-card .shirt-body,
+  .product-card-v12 .shirt-body {
+    min-height: 78px !important;
+  }
+  .shirt-card .card-title-block,
+  .product-card-v12 .card-title-block {
+    min-height: 27px !important;
   }
 }
