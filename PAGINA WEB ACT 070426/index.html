@@ -20,23 +20,34 @@ src="https://www.facebook.com/tr?id=1550108226705883&ev=PageView&noscript=1"
 <!-- End Meta Pixel Code -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BLACKCAT | Streetwear</title>
+  <title>BLACKCAT STREETWEAR</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/boxes.css?v=precios202609" />
+  <link rel="stylesheet" href="css/blackcat-editorial.css?v=20260910" />
+  <link rel="stylesheet" href="css/blackbull-theme.css?v=precios202609-fade">
 </head>
-<body>
+<body class="bc-editorial">
+  <div id="brandIntro" class="brand-intro" aria-hidden="true"><strong>BLACKCAT</strong><span>STREETWEAR</span><i></i></div>
+  <script>
+    (() => {
+      try { if (sessionStorage.getItem('bc-intro-seen')) return; sessionStorage.setItem('bc-intro-seen','1'); } catch (_) {}
+      document.documentElement.classList.add('brand-intro-active');
+      setTimeout(() => document.documentElement.classList.remove('brand-intro-active'), 1200);
+    })();
+  </script>
   <div class="promo-ticker" aria-label="Promociones BlackCat">
     <div class="promo-track">
       <span>🚚 Cobertura nacional</span>
       <span>🔥 SUMMER DROP 2026</span>
       <span>🛒 Compra directa en la web</span>
-      <span>🎁 Envío gratis desde $50</span>
+      <span>Envío $3.99 · GRATIS en compras mayores de $55.00</span>
       <span>🚚 Cobertura nacional</span>
       <span>🔥 SUMMER DROP 2026</span>
       <span>🛒 Compra directa en la web</span>
-      <span>🎁 Envío gratis desde $50</span>
+      <span>Envío $3.99 · GRATIS en compras mayores de $55.00</span>
     </div>
   </div>
 
@@ -48,11 +59,12 @@ src="https://www.facebook.com/tr?id=1550108226705883&ev=PageView&noscript=1"
         </div>
         <div class="brand-copy">
           <strong>BLACKCAT</strong>
-          <small>SUMMER DROP 2026</small>
+          <small>STREETWEAR</small>
         </div>
       </a>
 
       <nav class="nav-links">
+        <a href="#boxes">BOXES</a>
         <a href="#catalogo">Catálogo</a>
         <a href="#buscar">Buscar</a>
         <a href="#categorias">Categorías</a>
@@ -64,77 +76,70 @@ src="https://www.facebook.com/tr?id=1550108226705883&ev=PageView&noscript=1"
         <a class="wa-pill" href="https://wa.me/50361900185" target="_blank" rel="noopener">WhatsApp</a>
         <button class="cart-btn" id="cartToggle" aria-label="Abrir carrito">
           <span class="cart-count" id="cartCount">0</span>
-          🛒
+          <span class="social-ico ico-cart" aria-hidden="true"></span>
         </button>
       </div>
     </div>
   </header>
 
   <main>
-    <section class="hero" id="inicio">
-      <div class="container hero-grid">
-        <div class="hero-copy">
-          <span class="tag">Streetwear anime · cobertura nacional</span>
-          <h1>BLACK<span class="gradient">CAT</span></h1>
-          <div class="hero-subline">Drop activo · XS a 3XL · compra segura en línea</div>
-<div class="hero-actions hero-actions-v10">
-            <a class="btn btn-primary" href="#catalogo">Comprar ahora</a>
-            <a class="btn btn-green" href="https://wa.me/50361900185" target="_blank" rel="noopener">Ayuda por WhatsApp</a>
-          </div>
-
-          <div class="hero-social-row" aria-label="Redes BlackCat">
-            <a class="hero-social hero-contact-instagram" href="https://instagram.com/blackcat.sivar" target="_blank" rel="noopener" aria-label="Instagram"><span class="social-ico ico-instagram"></span></a>
-            <a class="hero-social hero-contact-tiktok" href="https://tiktok.com/@blackcat.sivar" target="_blank" rel="noopener" aria-label="TikTok"><span class="social-ico ico-tiktok"></span></a>
-            <a class="hero-social" href="mailto:blackcat2811@hotmail.com" aria-label="Email"><span class="social-ico ico-email"></span></a>
-          </div>
+    <section class="hero" id="inicio" aria-label="Promociones Black Cat">
+      <div class="hero-slider" id="heroSlider" data-fixed="true">
+        <div class="hero-slides">
+          <article class="hero-slide active campaign-violet">
+            <div class="campaign-photo"><img class="hero-main-image" src="assets/box-3-photo.png" data-fallback="assets/box-3-photo.png" alt="3 camisas Black Cat con diseños de ejemplo para BOX 3" width="1024" height="1280" loading="eager"></div>
+            <div class="campaign-copy"><span class="campaign-kicker">BLACK CAT / TU ROTACIÓN FAVORITA</span>
+              <h2>TUS DISEÑOS.<br>TU BOX.</h2><div class="campaign-offer"><strong>BOX 3</strong><span>3 camisas Oversize</span></div>
+              <p class="campaign-price">$55.99 <small>Envío gratis</small></p>
+              <p class="campaign-material">100% algodón · Tallas S–XL.<br>Combina diseños, tallas y colores.</p>
+              <button class="campaign-cta" type="button" data-box-start="3" disabled>Elegir BOX 3 <span aria-hidden="true">↗</span></button>
+              <a class="campaign-catalog" href="#catalogo">Explorar el catálogo</a>
+            </div>
+          </article>
+          <article class="hero-slide  campaign-ice">
+            <div class="campaign-photo"><img class="hero-main-image" src="assets/box-2-photo.png" data-fallback="assets/box-2-photo.png" alt="2 camisas Black Cat con diseños de ejemplo para BOX 2" width="1024" height="1280" loading="lazy"></div>
+            <div class="campaign-copy"><span class="campaign-kicker">BLACK CAT / ELIGE TU DÚO</span>
+              <h2>DOS DISEÑOS.<br>MUY TUYOS.</h2><div class="campaign-offer"><strong>BOX 2</strong><span>2 camisas Oversize</span></div>
+              <p class="campaign-price">$39.99 <small>+ envío</small></p>
+              <p class="campaign-material">100% algodón · Tallas S–XL.<br>Combina diseños, tallas y colores.</p>
+              <button class="campaign-cta" type="button" data-box-start="2" disabled>Elegir BOX 2 <span aria-hidden="true">↗</span></button>
+              <a class="campaign-catalog" href="#catalogo">Explorar el catálogo</a>
+            </div>
+          </article>
+          <article class="hero-slide  campaign-orchid">
+            <div class="campaign-photo"><img class="hero-main-image" src="assets/box-4-photo.png" data-fallback="assets/box-4-photo.png" alt="4 camisas Black Cat con diseños de ejemplo para BOX 4" width="1024" height="1280" loading="lazy"></div>
+            <div class="campaign-copy"><span class="campaign-kicker">BLACK CAT / AMPLÍA TU COLECCIÓN</span>
+              <h2>MÁS DISEÑOS.<br>MÁS BLACK CAT.</h2><div class="campaign-offer"><strong>BOX 4</strong><span>4 camisas Oversize</span></div>
+              <p class="campaign-price">$74.99 <small>Envío gratis</small></p>
+              <p class="campaign-material">100% algodón · Tallas S–XL.<br>Combina diseños, tallas y colores.</p>
+              <button class="campaign-cta" type="button" data-box-start="4" disabled>Elegir BOX 4 <span aria-hidden="true">↗</span></button>
+              <a class="campaign-catalog" href="#catalogo">Explorar el catálogo</a>
+            </div>
+          </article>
         </div>
-
-        <div class="hero-panel panel hero-slider" id="heroSlider">
-          <div class="hero-slides">
-            <div class="hero-slide active"><img class="hero-main-image" src="./assets/assetshero-1.webp" data-fallback="./assets/assetshero-1.png" alt="Hero BlackCat 1" width="1080" height="1250" loading="eager" decoding="async" fetchpriority="high" /></div>
-            <div class="hero-slide"><img class="hero-main-image" src="./assets/assetshero-2.webp" data-fallback="./assets/assetshero-2.png" alt="Hero BlackCat 2" width="1080" height="1250" loading="lazy" decoding="async" /></div>
-            <div class="hero-slide"><img class="hero-main-image" src="./assets/assetshero-3.webp" data-fallback="./assets/assetshero-3.png" alt="Hero BlackCat 3" width="1080" height="1250" loading="lazy" decoding="async" /></div>
-          </div>
-
-          <div class="hero-overlay"></div>
-          <button class="hero-nav hero-prev" id="heroPrev" aria-label="Imagen anterior">‹</button>
-          <button class="hero-nav hero-next" id="heroNext" aria-label="Imagen siguiente">›</button>
-
-          <div class="hero-dots" id="heroDots">
-            <button class="hero-dot active" data-slide="0" aria-label="Ir a slide 1"></button>
-            <button class="hero-dot" data-slide="1" aria-label="Ir a slide 2"></button>
-            <button class="hero-dot" data-slide="2" aria-label="Ir a slide 3"></button>
-          </div>
-
-          <div class="hero-badges">
-            <span>S - XL</span>
-            <span>🔥YU-GI-OH X YOUNGLA🔥</span>
-            <span>* DROP ACTIVO *</span>
-          </div>
+        <div class="campaign-navigation">
+          <button class="hero-nav" id="heroPrev" aria-label="Promoción anterior">←</button>
+          <div class="hero-dots" id="heroDots"><button class="hero-dot active" data-slide="0" aria-label="Ver BOX 3">01</button><button class="hero-dot " data-slide="1" aria-label="Ver BOX 2">02</button><button class="hero-dot " data-slide="2" aria-label="Ver BOX 4">03</button></div>
+          <button class="hero-nav" id="heroNext" aria-label="Promoción siguiente">→</button>
         </div>
       </div>
     </section>
 
-    <section class="section promo-pack-section" id="promo-drop">
-      <div class="container">
-        <div class="promo-pack panel">
-          <div class="promo-pack-copy">
-            <span class="eyebrow">Promo activa</span>
-            <h2>DROP 3 CAMISAS POR $55.99</h2>
-            <p>Incluye envío nacional. Elige 3 diseños disponibles del drop y completa tu compra en línea.</p>
-          </div>
-          <div class="promo-pack-actions">
-            <a class="btn btn-primary" href="#catalogo">Ver diseños</a>
-            <a class="btn btn-green promo-pack-wa" href="https://wa.me/50361900185?text=Hola%2C%20quiero%20consultar%20la%20promo%203%20camisetas%20por%20%2455.99%20con%20env%C3%ADo%20incluido." target="_blank" rel="noopener">Necesito ayuda</a>
-          </div>
+    <section class="box-section" id="boxes" aria-label="Elige tu BOX">
+      <div class="container box-selector-row">
+        <div><span class="eyebrow">TU BOX, TUS REGLAS</span><p>Elige un paquete y agrega las camisas desde el catálogo.</p></div>
+        <div class="box-compact-options">
+          <button type="button" data-box-start="2" disabled><strong>BOX 2</strong><span>$39.99</span></button>
+          <button type="button" data-box-start="3" disabled><strong>BOX 3</strong><span>$55.99</span></button>
+          <button type="button" data-box-start="4" disabled><strong>BOX 4</strong><span>$74.99</span></button>
         </div>
+        <small>Oversize · S–XL · + envío</small>
       </div>
     </section>
 
     <section class="section" id="categorias">
       <div class="container">
         <div class="section-head series-head">
-          <div><span class="eyebrow">Filtra por serie</span><div class="title">Anime selection</div></div>
           <div class="series-controls" aria-label="Controles de series">
             <button class="series-arrow" id="seriesPrev" type="button" aria-label="Series anteriores">‹</button>
             <button class="series-arrow" id="seriesNext" type="button" aria-label="Series siguientes">›</button>
@@ -149,11 +154,11 @@ src="https://www.facebook.com/tr?id=1550108226705883&ev=PageView&noscript=1"
     <section class="section special-lines" id="lineas-especiales">
       <div class="container">
         <div class="section-head special-head">
-          <div><span class="eyebrow">Nuevas líneas</span><div class="title">Más que camisetas</div></div>
+          <div><span class="eyebrow">Otras categorías</span><div class="title">Explora Black Cat</div></div>
         </div>
         <div class="special-grid">
           <button class="panel special-card hoodie-card" type="button" data-line="hoodie"><span class="special-kicker">Categoría</span><strong>Hoodies BlackCat</strong><small></small></button>
-          <button class="panel special-card extras-card" type="button" data-line="extra"><span class="special-kicker">Exclusivos</span><strong>Nuevos y Limitados</strong><small></small></button>
+          <button class="panel special-card extras-card" type="button" data-line="extra"><span class="special-kicker">Categoría</span><strong>Accesorios</strong><small>Tote bags y complementos · Precio regular</small></button>
         </div>
       </div>
     </section>
@@ -173,6 +178,8 @@ src="https://www.facebook.com/tr?id=1550108226705883&ev=PageView&noscript=1"
           <div><span class="eyebrow">Catálogo BlackCat</span><div class="title">Elige tu diseño</div></div>
         </div>
         <div class="filters" id="filterChips"></div>
+        <div id="boxComplete" class="box-complete" hidden></div>
+        <div id="boxBuilder" class="box-builder" hidden></div>
         <div class="shirt-grid" id="shirtGrid"></div>
       </div>
     </section>
@@ -186,7 +193,7 @@ src="https://www.facebook.com/tr?id=1550108226705883&ev=PageView&noscript=1"
 
     <section class="section product-line-section hidden-line-section" id="extras">
       <div class="container">
-        <div class="section-head compact-line-head"><div><span class="eyebrow">BlackCat exclusivo</span><div class="title">Productos nuevos o exclusivos</div></div><a class="btn btn-green small-line-btn" href="https://wa.me/50361900185?text=Hola%2C%20quiero%20consultar%20productos%20nuevos%20o%20exclusivos%20BlackCat" target="_blank" rel="noopener">Consultar productos</a></div>
+        <div class="section-head compact-line-head"><div><span class="eyebrow">Línea independiente</span><div class="title">Accesorios</div></div><a class="btn btn-green small-line-btn" href="https://wa.me/50361900185?text=Hola%2C%20quiero%20consultar%20productos%20nuevos%20o%20exclusivos%20BlackCat" target="_blank" rel="noopener">Consultar productos</a></div>
         <div class="line-products" id="extrasGrid"></div>
       </div>
     </section>
@@ -195,13 +202,26 @@ src="https://www.facebook.com/tr?id=1550108226705883&ev=PageView&noscript=1"
       <div class="container">
         <div class="section-head"><div><span class="eyebrow">Compra fácil</span><div class="title">Cómo comprar</div></div></div>
         <div class="how-grid how-grid-compact">
-          <article class="panel how-card"><span>01</span><strong>Selecciona diseño</strong><p>Explora por serie y abre opciones.</p></article>
-          <article class="panel how-card"><span>02</span><strong>Elige talla/color</strong><p>Confirma tipo, talla y cantidad.</p></article>
+          <article class="panel how-card"><span>01</span><strong>Selecciona diseño</strong><p>Activa una BOX y elige tus camisas del catálogo.</p></article>
+          <article class="panel how-card"><span>02</span><strong>Elige talla/color</strong><p>Abre la camisa y elige talla y color. Si activaste una BOX, su precio se aplica al completar el paquete.</p></article>
           <article class="panel how-card"><span>03</span><strong>Paga en línea</strong><p>Completa tus datos y paga de forma segura con Wompi.</p></article>
         </div>
       </div>
     </section>
   </main>
+
+  <footer class="site-footer" aria-label="Black Cat y contacto">
+    <div class="container footer-layout">
+      <div class="footer-brand"><a href="#inicio" aria-label="Black Cat, inicio">BLACK CAT</a><p>Diseños que van contigo.<br>El Salvador · Envíos nacionales.</p></div>
+      <div><h2>Contacto</h2><a href="https://wa.me/50361900185" target="_blank" rel="noopener noreferrer">WhatsApp: +503 6190-0185</a><a href="mailto:blackcat2811@hotmail.com">blackcat2811@hotmail.com</a></div>
+      <div><h2>Síguenos</h2><div class="footer-socials">
+        <a href="https://instagram.com/blackcat.sivar" target="_blank" rel="noopener noreferrer" aria-label="Instagram de Black Cat"><span class="social-ico ico-instagram" aria-hidden="true"></span><span>Instagram</span></a>
+        <a href="https://tiktok.com/@blackcat.sivar" target="_blank" rel="noopener noreferrer" aria-label="TikTok de Black Cat"><span class="social-ico ico-tiktok" aria-hidden="true"></span><span>TikTok</span></a>
+        <a href="https://wa.me/50361900185" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp de Black Cat"><span class="social-ico ico-whatsapp" aria-hidden="true"></span><span>WhatsApp</span></a>
+      </div></div>
+    </div>
+    <div class="container footer-bottom"><small>© 2026 BLACK CAT. Todos los derechos reservados.</small><a href="#como-comprar">Cómo comprar</a><a href="#inicio">Volver arriba ↑</a></div>
+  </footer>
 
   <aside class="mobile-drawer" id="mobileDrawer" aria-hidden="true">
     <div class="drawer-head">
@@ -209,7 +229,7 @@ src="https://www.facebook.com/tr?id=1550108226705883&ev=PageView&noscript=1"
       <button id="menuClose" type="button" aria-label="Cerrar menú">✕</button>
     </div>
     <nav class="drawer-links">
-      <a href="#inicio">Inicio</a><a href="#catalogo">Catálogo</a><a href="#buscar">Buscar</a><a href="#categorias">Categorías</a><a href="#como-comprar">Cómo comprar</a>
+      <a href="#inicio">Inicio</a><a href="#boxes">BOXES</a><a href="#catalogo">Catálogo</a><a href="#buscar">Buscar</a><a href="#categorias">Categorías</a><a href="#como-comprar">Cómo comprar</a>
     </nav>
     <div class="drawer-socials drawer-social-icons"><a href="https://wa.me/50361900185" target="_blank" rel="noopener" aria-label="WhatsApp"><span class="social-ico ico-whatsapp"></span></a><a href="https://instagram.com/blackcat.sivar" target="_blank" rel="noopener" aria-label="Instagram"><span class="social-ico ico-instagram"></span></a><a href="https://tiktok.com/@blackcat.sivar" target="_blank" rel="noopener" aria-label="TikTok"><span class="social-ico ico-tiktok"></span></a><a href="mailto:blackcat2811@hotmail.com" aria-label="Email"><span class="social-ico ico-email"></span></a></div>
   </aside>
@@ -252,6 +272,10 @@ src="https://www.facebook.com/tr?id=1550108226705883&ev=PageView&noscript=1"
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase-config.js"></script>
   <script src="js/config.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/pricing.js?v=supabase-sync-v1"></script>
+  <script src="js/app.js?v=supabase-sync-v1"></script>
+  <script src="js/boxes.js?v=precios202609c"></script>
+  <script src="js/editorial-motion.js?v=precios202609c"></script>
+  <script src="js/commerce-sync.js?v=supabase-sync-v1"></script>
 </body>
 </html>

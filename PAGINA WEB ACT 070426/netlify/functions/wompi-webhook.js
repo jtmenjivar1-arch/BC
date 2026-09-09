@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const {db}=require('./lib/store');
 
 const json = (statusCode, payload) => ({
   statusCode,
@@ -20,7 +21,7 @@ function getHeader(headers = {}, name) {
 }
 
 function findOrderRef(data = {}) {
-  return data.identificadorEnlaceComercio ||
+  return data.EnlacePago?.IdentificadorEnlaceComercio || data.enlacePago?.identificadorEnlaceComercio || data.identificadorEnlaceComercio ||
     data.IdentificadorEnlaceComercio ||
     data.transaccionCompra?.idExterno ||
     data.transaccionCompra?.identificadorEnlaceComercio ||
@@ -30,7 +31,7 @@ function findOrderRef(data = {}) {
 
 function isApprovedPayment(data = {}) {
   const tx = data.transaccionCompra || data.TransaccionCompra || data;
-  return tx.esAprobada === true || tx.EsAprobada === true || String(tx.esAprobada).toLowerCase() === 'true';
+  return data.ResultadoTransaccion === 'ExitosaAprobada' || tx.esAprobada === true || tx.EsAprobada === true || String(tx.esAprobada).toLowerCase() === 'true';
 }
 
 function paymentValue(data = {}) {
@@ -69,8 +70,9 @@ exports.handler = async (event) => {
     return json(405, { error: 'Method Not Allowed' });
   }
 
-  const body = event.body || '';
+  const body = event.isBase64Encoded ? Buffer.from(event.body||'', 'base64').toString('utf8') : event.body || '';
   const apiSecret = process.env.WOMPI_API_SECRET || '';
+  if (!apiSecret) return json(503,{error:'Verificación de Wompi no configurada.'});
   const receivedHash = getHeader(event.headers, 'Wompi_Hash') || getHeader(event.headers, 'wompi_hash');
 
   if (apiSecret && !receivedHash) {
@@ -98,14 +100,23 @@ exports.handler = async (event) => {
 
   if (approved) {
     try {
+      if (!orderRef || !value) return json(400,{error:'Falta referencia o importe.'});
+      const path=`orders?brand=eq.blackcat&order_ref=eq.${encodeURIComponent(orderRef)}`;
+      const orders=await db(path+'&select=id,total,status,payment_status');
+      if (orders.length!==1) return json(404,{error:'Pedido no encontrado.'});
+      const order=orders[0];
+      if (Math.round(Number(order.total)*100)!==Math.round(value*100)) return json(409,{error:'El importe no coincide con el pedido.'});
+      if (order.payment_status==='paid') return json(200,{ok:true,duplicate:true});
+      const updated=await db(path+'&payment_status=eq.pending',{method:'PATCH',body:JSON.stringify({payment_status:'paid',status:order.status==='pending'?'paid':order.status,paid_at:new Date().toISOString(),wompi_transaction_id:String(data.IdTransaccion||''),wompi_payment_attempt_id:String(data.IdIntentoPago||''),wompi_authorization_code:String(data.CodigoAutorizacion||''),wompi_result:String(data.ResultadoTransaccion||'ExitosaAprobada')})});
+      if (!updated?.length) return json(200,{ok:true,duplicate:true});
+    } catch(error) { return json(503,{error:'No se pudo sincronizar el pago. Wompi debe reintentar.'}); }
+    try {
       metaPurchaseSent = (await sendMetaPurchase({ orderRef, value })).sent;
     } catch (error) {
       console.error('BlackCat Meta Purchase:', error.message);
     }
   }
 
-  // En esta primera integración se confirma el webhook y se deja listo para logs.
-  // Para cambiar status a paid con precisión, conviene guardar orderRef en una columna de orders.
   console.log('BlackCat Wompi webhook:', JSON.stringify({ orderRef, approved, value, metaPurchaseSent }));
 
   return json(200, { ok: true, orderRef, approved, metaPurchaseSent });

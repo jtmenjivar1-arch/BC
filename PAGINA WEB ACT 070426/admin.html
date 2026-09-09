@@ -753,19 +753,15 @@
               <div class="field">
                 <label for="shirtMode">Modalidad de camisa</label>
                 <select id="shirtMode">
-                  <option value="basic">Solo Basic</option>
+                  <option value="basic">Solo Regular Fit</option>
                   <option value="oversize">Solo Oversize</option>
                   <option value="both">Basic + Oversize</option>
                   <option value="croptop">Solo Crop Top</option>
-                  <option value="boxyfit">Solo Boxy Fit</option>
-                  <option value="basic_boxyfit">Basic + Boxy Fit</option>
-                  <option value="oversize_boxyfit">Oversize + Boxy Fit</option>
-                  <option value="basic_oversize_boxyfit">Basic + Oversize + Boxy Fit</option>
                 </select>
               </div>
 
               <div class="field" id="priceBasicWrap">
-                <label for="priceBasic">Precio Basic</label>
+                <label for="priceBasic">Precio Regular Fit</label>
                 <input id="priceBasic" type="number" step="0.01" value="17.00" />
               </div>
 
@@ -926,6 +922,7 @@
       </main>
     </div>
 
+    <script src="js/admin-commerce.js?v=1"></script>
     <script>
       // Usa la misma configuración real de js/supabase-config.js
       // y la misma contraseña del admin definida en js/config.js.
@@ -1081,6 +1078,7 @@
       }
 
       function fillHeroForm(data = {}) {
+        window.bcAdminFillCommerce(data);
         const hero = data.hero || data || {};
         const badges = hero.badges || [data.hero_badge_1, data.hero_badge_2, data.hero_badge_3].filter(Boolean);
 
@@ -1123,6 +1121,8 @@
           return;
         }
 
+        let commerce;
+        try { commerce=window.bcAdminReadCommerce(); } catch(error) {setHeroStatus(error.message,"error");return;}
         const payload = {
           id: 1,
           hero_title_prefix: els.heroTitlePrefix.value.trim() || "BLACK",
@@ -1132,6 +1132,7 @@
           hero_badge_2: els.heroBadge2.value.trim(),
           hero_badge_3: els.heroBadge3.value.trim(),
           hero_image_url: els.heroImageUrl.value.trim(),
+          ...commerce,
           lead_popup_enabled: els.leadPopupEnabled.value === "true"
         };
 
@@ -1256,7 +1257,7 @@
 
       function getReadableShirtMode(mode) {
         const labels = {
-          basic: "Solo Basic",
+          basic: "Solo Regular Fit",
           oversize: "Solo Oversize",
           both: "Basic + Oversize",
           croptop: "Solo Crop Top",
@@ -1297,6 +1298,7 @@
       }
 
       function resetForm() {
+        window.bcAdminFillPrices({});
         selectedProductId = null;
 
         els.formTitle.textContent = "Nuevo producto";
@@ -1344,6 +1346,7 @@
       }
 
       function fillForm(product) {
+        window.bcAdminFillPrices(product);
         selectedProductId = product.id;
 
         els.formTitle.textContent = "Editar producto";
@@ -1358,15 +1361,16 @@
 
         let adminCategory = normalizeAdminCategory(product.category || product.product_type || "camisa");
         if (adminCategory === "camisa" && String(product.badge || "").toLowerCase().includes("exclusivo")) adminCategory = "camisa_exclusiva";
-        const currentMode = product.shirt_mode || product.product_type || "basic";
+        const rawMode = product.shirt_mode || product.product_type || "basic";
+        const currentMode = rawMode.includes('boxyfit') ? (rawMode.includes('basic')?'both':'oversize') : rawMode;
 
         els.category.value = adminCategory;
         els.active.value = String(product.active !== false);
         els.orderIndex.value = product.order_index ?? 0;
 
         els.shirtMode.value = currentMode;
-        els.priceBasic.value = product.price_basic ?? 17.00;
-        els.priceOversize.value = product.price_oversize ?? 19.99;
+        els.priceBasic.value = product.price_basic ?? product.price ?? 19.99;
+        els.priceOversize.value = product.price_oversize ?? product.price ?? 24.99;
         els.priceCropTop.value = product.price_croptop ?? (currentMode === "croptop" ? (product.price ?? 12.99) : 12.99);
         els.priceBoxyFit.value = product.price_boxyfit ?? (String(currentMode).includes("boxyfit") ? (product.price ?? 22.00) : 22.00);
         els.priceBoxyFitPlus.value = product.price_boxyfit_plus ?? 25.00;
@@ -1435,6 +1439,8 @@
 
         return {
           title,
+          ...window.bcAdminReadPrices(),
+          brand: "blackcat",
           description: els.description.value.trim(),
           image_url: els.imageUrl.value.trim(),
           anime: category === "termo" ? "Exclusivos" : els.anime.value.trim(),
@@ -1445,6 +1451,7 @@
           category: isShirtCategory(category) ? category : category,
           product_type: productType,
           shirt_mode: isShirtCategory(category) ? els.shirtMode.value : null,
+          types: isShirtCategory(category) ? (els.shirtMode.value==='both'?['basic','oversize']:[els.shirtMode.value]) : [],
           price,
           price_basic: isShirtCategory(category) && shirtModeHas(els.shirtMode.value, "basic")
             ? Number(els.priceBasic.value || 17.00)
@@ -1475,6 +1482,12 @@
       }
 
       function validatePayload(payload) {
+        for(const key of ['price_basic_2xl','price_basic_3xl','price_oversize_2xl','price_oversize_3xl','price_hoodie_xl','price_hoodie_2xl']){
+          if(payload[key]!==null && (!Number.isFinite(payload[key])||payload[key]<=0))return 'Los precios Plus deben ser mayores a cero.';
+        }
+        if(isShirtCategory(payload.category))for(const type of payload.types||[])for(const size of ['2XL','3XL']){
+          if(['basic','oversize'].includes(type)&&payload.sizes.includes(size)&&payload['price_'+type+'_'+size.toLowerCase()]===null)return 'Configura el precio '+type+' '+size+'.';
+        }
         if (!payload.title) return "Agrega un título para el producto.";
         if (!payload.image_url) return "Agrega una URL de imagen o mockup.";
         if (!payload.category) return "Selecciona una categoría.";
@@ -1505,6 +1518,7 @@
         const { data, error } = await adminSupabaseClient
           .from("products")
           .select("*")
+          .eq("brand","blackcat")
           .order("order_index", { ascending: true });
 
         if (error) {
@@ -1513,6 +1527,7 @@
           return;
         }
 
+        window.bcAdminLoadOrders(adminSupabaseClient);
         products = data || [];
         renderProductList();
         setStatus(`Productos cargados: ${products.length}`, "ok");
@@ -1570,7 +1585,10 @@
           const { error } = await adminSupabaseClient
             .from("products")
             .update(payload)
-            .eq("id", selectedProductId);
+            .eq("id", selectedProductId)
+            .eq("brand", "blackcat")
+            .select("id")
+            .single();
 
           if (error) {
             console.error(error);
@@ -1631,7 +1649,10 @@
         const { error } = await adminSupabaseClient
           .from("products")
           .delete()
-          .eq("id", selectedProductId);
+          .eq("id", selectedProductId)
+            .eq("brand", "blackcat")
+            .select("id")
+            .single();
 
         if (error) {
           console.error(error);

@@ -29,8 +29,6 @@
       currency: 'USD',
     });
 
-    const SHIPPING_FEE = 1.99;
-    const FREE_SHIPPING_THRESHOLD = 50;
 
     const SERIES_IMAGES = {
       BlackCat: 'assets/logo-gato.png',
@@ -75,7 +73,7 @@
     ];
 
     const PRODUCT_TYPES = [
-      { key: 'basic', label: 'Basic' },
+      { key: 'basic', label: 'Regular Fit' },
       { key: 'oversize', label: 'Oversize' },
       { key: 'croptop', label: 'Crop Top' },
       { key: 'boxyfit', label: 'Boxy Fit' },
@@ -162,18 +160,20 @@
     async function initBlackCat() {
       cacheElements();
       injectFunctionalStyles();
-      loadCart();
       bindUI();
       bindSeriesDragScroll();
       bindHeroImageFallbacks();
       initHeroSlider();
       await loadData();
+      loadCart();
       applySettings();
       initNewsletterPopup();
       renderSeries();
       showCatalog(false);
       renderCart();
       openProductFromUrl();
+      initBoxes();
+      syncCommerceText();
     }
 
     function cacheElements() {
@@ -203,20 +203,21 @@
     }
 
     async function loadData() {
-      const fallback = window.DEFAULT_SITE_DATA || {
+      const fallback = window.DEFAULT_SITE_DATA || (typeof DEFAULT_SITE_DATA !== 'undefined' ? DEFAULT_SITE_DATA : null) || {
         hero: {},
         contacts: {},
         products: [],
       };
 
       BC.settings = normalizeSettings(fallback);
-      BC.products = normalizeProducts((fallback.products || []).filter((p) => p.forceLocal !== true));
+      BC.products = [];
+      BCPricing.configure([],{});
 
       if (window.supabaseClient) {
         try {
           const [settingsResult, productsResult] = await Promise.allSettled([
             window.supabaseClient.from('site_settings').select('*').eq('id', 1).maybeSingle(),
-            window.supabaseClient.from('products').select('*').order('order_index', { ascending: true }),
+            window.supabaseClient.from('products').select('*').eq('brand','blackcat').order('order_index', { ascending: true }),
           ]);
 
           const settingsData = settingsResult.value?.data;
@@ -229,13 +230,13 @@
           if (Array.isArray(productsData)) {
             BC.products = normalizeProducts(productsData);
           }
+          BCPricing.configure(Array.isArray(productsData)?productsData:[],settingsData||{});
         } catch (error) {
-          console.warn('BlackCat: Supabase no cargó, usando datos locales.', error);
+          console.warn('BlackCat: Supabase no cargó; compra temporalmente no disponible.', error);
         }
       }
 
-      BC.products = mergeSeedProducts(BC.products, normalizeProducts(LOCAL_SEED_PRODUCTS));
-      console.log('BlackCat productos cargados:', BC.products);
+      // Supabase is authoritative; deleted products must not reappear from local seeds.
     }
 
     function mergeSeedProducts(baseProducts, seedProducts) {
@@ -275,6 +276,7 @@
         tiktok: contacts.tiktok || source.tiktok || BC.defaultTikTok,
         email: contacts.email || source.email || BC.defaultEmail,
         leadPopupEnabled: source.lead_popup_enabled === true || source.leadPopupEnabled === true,
+        commerceConfig: source.commerce_config || null,
       };
     }
 
@@ -385,6 +387,7 @@
             character,
             anime: category === 'extras' ? 'Exclusivos' : anime,
             badge,
+            premium: p.premium === true || p.price_tier === 'premium' || /premium/i.test(String(badge || '')),
             image,
             category,
             productType,
@@ -392,6 +395,11 @@
             adminTypes,
             price,
             priceBasic,
+            priceBasic2XL: p.price_basic_2xl,
+            priceBasic3XL: p.price_basic_3xl,
+            priceOversize2XL: p.price_oversize_2xl,
+            priceOversize3XL: p.price_oversize_3xl,
+            box_eligible: p.box_eligible,
             priceOversize,
             priceCropTop,
             priceBoxyFit,
@@ -658,7 +666,7 @@
         raw.includes('termo') ||
         raw.includes('vaso') ||
         raw.includes('taza') ||
-        raw.includes('accesorio')
+        raw.includes('accesorio') || raw.includes('tote')
       ) {
         return 'extras';
       }
@@ -717,7 +725,7 @@
 
       const subline = $('.hero-subline');
 
-      if (subline && BC.settings.heroSubtitle) {
+      if (subline && BC.settings.heroSubtitle && !subline.dataset.fixed) {
         subline.textContent = BC.settings.heroSubtitle;
       }
 
@@ -731,7 +739,7 @@
 
       bindHeroImageFallbacks();
 
-      if (BC.settings.heroImage) {
+      if (BC.settings.heroImage && !$('#heroSlider')?.dataset.fixed) {
         const firstHero = $('.hero-slide.active img') || $('.hero-main-image');
         setHeroImageSafely(firstHero, BC.settings.heroImage);
       }
@@ -1009,11 +1017,8 @@
     }
 
     function showExtras(scroll = true) {
-      // Filtro especial dentro del catálogo principal:
-      // solo muestra productos con viñeta NUEVO/NEW o LIMITADO.
-      // DROP, EXCLUSIVO u otras viñetas no entran en este bloque.
-      BC.view = 'catalog';
-      BC.featuredOnly = true;
+      BC.view = 'extras';
+      BC.featuredOnly = false;
       BC.activeAnime = 'all';
 
       if (el.search) {
@@ -1077,6 +1082,13 @@
       if (BC.view === 'hoodies') {
         if (eyebrow) eyebrow.textContent = 'Categoría independiente';
         if (title) title.textContent = 'Hoodies BlackCat';
+        backRow.style.display = 'flex';
+        return;
+      }
+
+      if (BC.view === 'extras') {
+        if (eyebrow) eyebrow.textContent = 'Línea independiente · Precio regular';
+        if (title) title.textContent = 'Accesorios';
         backRow.style.display = 'flex';
         return;
       }
@@ -1183,6 +1195,7 @@
     }
 
     function setAnime(anime) {
+      BC.view = 'catalog';
       BC.activeAnime = anime === 'all' ? 'all' : anime;
 
       renderSeries();
@@ -1228,9 +1241,8 @@
         return BC.products.filter((p) => p.category === 'hoodies');
       }
 
-      // Catálogo principal: muestra camisas normales + camisas/productos nuevos/limitados.
-      // Solo las hoodies quedan como línea separada.
-      return BC.products.filter((p) => p.category !== 'hoodies');
+      if (BC.view === 'extras') return BC.products.filter(p => p.category === 'extras');
+      return BC.products.filter((p) => p.category === 'catalog');
     }
 
     function getVisibleProducts() {
@@ -1259,9 +1271,15 @@
 
       updateCatalogHeader();
 
-      const items = getVisibleProducts();
+      const allItems = getVisibleProducts();
+      const homeSelection = BC.view === 'catalog' && BC.activeAnime === 'all' && !BC.search && !BC.featuredOnly;
+      const pageKey = `${BC.view}|${BC.activeAnime}|${BC.search}|${BC.featuredOnly}`;
+      if (BC.catalogPageKey !== pageKey) { BC.catalogPageKey = pageKey; BC.catalogLimit = homeSelection ? 8 : 12; }
+      const items = allItems.slice(0, BC.catalogLimit || 8);
 
       if (!items.length) {
+        const more = document.getElementById('catalogMore');
+        if (more) more.innerHTML = '';
         el.grid.innerHTML = renderEmptyState();
 
         $('.empty-back-btn', el.grid)?.addEventListener('click', () => showCatalog(true));
@@ -1269,6 +1287,10 @@
       }
 
       el.grid.innerHTML = items.map(renderProductCard).join('');
+      let more = document.getElementById('catalogMore');
+      if (!more) { more = document.createElement('div'); more.id = 'catalogMore'; el.grid.after(more); }
+      more.innerHTML = `<p>${homeSelection ? 'Una selección para empezar. Elige una serie para descubrir todos sus diseños.' : `${items.length} de ${allItems.length} diseños`}</p>${items.length < allItems.length ? '<button type="button">Ver más diseños</button>' : ''}`;
+      more.querySelector('button')?.addEventListener('click', () => { BC.catalogLimit += 12; renderCatalog(); });
 
       $$('.shirt-card', el.grid).forEach((card) => {
         const id = card.dataset.id;
@@ -1279,6 +1301,7 @@
         card.style.cursor = 'pointer';
         card.addEventListener('click', () => openProduct(product));
       });
+      window.bcObserveReveals?.();
     }
 
     function renderProductCard(product) {
@@ -1293,20 +1316,21 @@
         .join(' ');
 
       const categoryLabel =
-        product.category === 'hoodies' ? 'HOODIE' : product.category === 'extras' ? 'EXCLUSIVO' : product.anime;
+        product.category === 'hoodies' ? 'HOODIE · PRECIO REGULAR' : product.category === 'extras' ? 'ACCESORIOS · PRECIO REGULAR' : product.anime;
 
       const priceLabel =
         product.category === 'hoodies'
           ? `desde ${MONEY.format(Number(product.price || 28.99))}`
           : product.category === 'extras'
-            ? MONEY.format(Number(product.price || 0))
+            ? MONEY.format(getUnitPriceForVariant(product, 'producto', product.sizes?.[0] || ''))
             : `desde ${MONEY.format(getLowestShirtPrice(product))}`;
 
       return `
         <article class="${cardClasses}" data-id="${escapeAttr(product.id)}">
           <button class="shirt-media" type="button" aria-label="Ver ${escapeAttr(product.title)}">
             <img src="${escapeAttr(product.image)}" alt="${escapeAttr(product.title)} ${escapeAttr(product.anime)}" loading="lazy" decoding="async">
-            <span class="shirt-badge">${escapeHTML(product.badge || 'NEW')}</span>
+            ${product.category === 'catalog' ? `<span class="shirt-badge">${escapeHTML(product.badge || 'NEW')}</span>` : ''}
+            <span class="card-hover-action">VER OPCIONES <span aria-hidden="true">↗</span></span>
           </button>
 
           <div class="shirt-body">
@@ -1325,8 +1349,8 @@
     }
     function renderEmptyState() {
       const message =
-        BC.view === 'hoodies'
-          ? 'Aún no hay hoodies cargadas en esta categoría. Cuando agregues productos tipo hoodie aparecerán aquí automáticamente.'
+        boxDraft ? 'Tu BOX incluye camisas Oversize de S a XL. Prueba otra colección o vuelve al catálogo.' : BC.view === 'hoodies'
+          ? 'Aún no hay hoodies disponibles. Consulta disponibilidad por WhatsApp.'
           : BC.featuredOnly
             ? 'Aún no hay productos con viñeta NUEVO o LIMITADO. Asigna una de esas dos viñetas desde el admin para que aparezcan aquí.'
             : 'No hay diseños disponibles con este filtro.';
@@ -1348,23 +1372,24 @@
 
       if (product.category === 'hoodies') return ['hoodie'];
       if (product.category === 'extras') return ['producto'];
+      const availableCuts = types => [...new Set(types.map(type => type === 'boxyfit' ? 'oversize' : type))];
 
       if (Array.isArray(product.adminTypes) && product.adminTypes.length) {
-        return product.adminTypes;
+        return availableCuts(product.adminTypes);
       }
 
       const fromRaw = getAdminTypesFromRawProduct(product);
 
       if (fromRaw.length) {
-        return fromRaw;
+        return availableCuts(fromRaw);
       }
 
       const mode = normalizeMode(product.shirtMode || product.productType || 'basic');
 
-      if (SHIRT_MODE_TYPES[mode]) return SHIRT_MODE_TYPES[mode];
+      if (SHIRT_MODE_TYPES[mode]) return availableCuts(SHIRT_MODE_TYPES[mode]);
 
       if (['basic', 'oversize', 'croptop', 'boxyfit'].includes(mode)) {
-        return [mode];
+        return availableCuts([mode]);
       }
 
       return ['basic'];
@@ -1432,13 +1457,7 @@
     }
 
     function calculateOrderTotals(items = []) {
-      const subtotal = roundMoney(items.reduce(
-        (sum, item) => sum + Number(item.unitPrice || 0) * Number(item.qty || 1),
-        0
-      ));
-      const qualifiesForFreeShipping = subtotal >= FREE_SHIPPING_THRESHOLD;
-      const shipping = subtotal > 0 && !qualifiesForFreeShipping ? SHIPPING_FEE : 0;
-      return { subtotal, shipping, total: roundMoney(subtotal + shipping) };
+      return BCPricing.totals(items);
     }
 
     function productSlug(product = {}) {
@@ -1496,67 +1515,14 @@
 
     function getUnitPriceForVariant(product, type, size) {
       if (!product) return 0;
-
-      const selectedType = String(type || '').toLowerCase();
-      const selectedSize = String(size || '').toUpperCase();
-
-      // Hoodies: precio por talla. Si el admin cambia el precio base, se mantiene la diferencia por talla.
-      if (product.category === 'hoodies' || selectedType === 'hoodie') {
-        const base = getMoneyValue(product.price, HOODIE_SIZE_PRICES.L || 28.99);
-
-        if (selectedSize === 'XL') {
-          return getMoneyValue(product.priceHoodieXL, roundMoney(base + ((HOODIE_SIZE_PRICES.XL || 34) - (HOODIE_SIZE_PRICES.L || 28.99))));
-        }
-
-        if (selectedSize === '2XL') {
-          return getMoneyValue(product.priceHoodie2XL, roundMoney(base + ((HOODIE_SIZE_PRICES['2XL'] || 35.99) - (HOODIE_SIZE_PRICES.L || 28.99))));
-        }
-
-        return base;
-      }
-
-      // Productos nuevos/exclusivos: precio fijo por producto. Color/presentación no altera el costo.
-      if (product.category === 'extras' || selectedType === 'termo' || selectedType === 'producto' || selectedType === 'personalizado') {
-        return getMoneyValue(product.price, getMoneyValue(product.priceCustom, 14.99));
-      }
-
-      // Basic BlackCat: respeta precio Basic del admin y aplica diferencia por talla plus.
-      if (selectedType === 'basic') {
-        const base = getMoneyValue(product.priceBasic, getMoneyValue(product.price, 17.0));
-        if (selectedSize === '2XL') return roundMoney(base + 2.99);
-        if (selectedSize === '3XL') return roundMoney(base + 8.99);
-        return base;
-      }
-
-      // Oversize BlackCat: respeta precio Oversize del admin y aplica diferencia por talla plus.
-      if (selectedType === 'oversize') {
-        const base = getMoneyValue(product.priceOversize, getMoneyValue(product.price, 19.99));
-        if (selectedSize === 'XL') return roundMoney(base + 3.0);
-        if (selectedSize === '2XL') return roundMoney(base + 6.0);
-        if (selectedSize === '3XL') return roundMoney(base + 9.0);
-        return base;
-      }
-
-      // Boxy Fit BlackCat: respeta precio S-L y precio XL-2XL del admin.
-      if (selectedType === 'boxyfit') {
-        const base = getMoneyValue(product.priceBoxyFit, getMoneyValue(product.priceBasic, getMoneyValue(product.price, 22.0)));
-        const plus = getMoneyValue(product.priceBoxyFitPlus, 25.0);
-        if (selectedSize === 'XL' || selectedSize === '2XL') return plus;
-        return base;
-      }
-
-      // Crop Top: respeta precio Crop Top del admin.
-      if (selectedType === 'croptop') {
-        return getMoneyValue(product.priceCropTop, getMoneyValue(product.price, getMoneyValue(product.priceBasic, 12.99)));
-      }
-
-      return getMoneyValue(product.price, 0);
+      const cents=BCPricing.fixedPrice(product,String(type||'').toLowerCase(),String(size||'').toUpperCase());
+      return cents===null?0:cents/100;
     }
 
     function openProduct(product, updateUrl = true) {
       BC.selectedProduct = product;
 
-      const firstType =
+      const firstType = boxDraft && boxProducts().some(p => String(p.id) === String(product.id)) ? 'oversize' :
         product.category === 'hoodies'
           ? 'hoodie'
           : product.category === 'extras'
@@ -1609,11 +1575,11 @@
         const unitPrice = getSelectedUnitPrice();
         const total = unitPrice * BC.selectedVariant.qty;
 
-        el.modalPrice.textContent = MONEY.format(total);
+        el.modalPrice.textContent = unitPrice>0 ? MONEY.format(total) : 'Precio no disponible';
       }
 
       if (el.addToCartBtn) {
-        el.addToCartBtn.disabled = false;
+        el.addToCartBtn.disabled = !(getSelectedUnitPrice()>0);
         el.addToCartBtn.onclick = (event) => {
           event.preventDefault();
           event.stopPropagation();
@@ -1833,6 +1799,8 @@
 
     function renderCart() {
       if (!el.cartItems) return;
+      if (!BCPricing.ready()) {el.cartItems.textContent='No se pudo cargar la configuración de compra. Actualiza la página.';$('#checkoutBtn').disabled=true;return;}
+      try { BC.cart = BCPricing.quote(BC.cart); } catch(error) {el.cartItems.textContent=error.message;const reset=document.createElement('button');reset.textContent='Vaciar carrito';reset.onclick=()=>{BC.cart=[];saveCart();renderCart();};el.cartItems.append(reset);$('#checkoutBtn').disabled=true;return;}
 
       if (!BC.cart.length) {
         el.cartItems.innerHTML = '<p class="cart-empty">Tu carrito está vacío.</p>';
@@ -1842,8 +1810,10 @@
             <img src="${escapeAttr(item.image || FALLBACK_PRODUCT_IMAGE)}" alt="${escapeAttr(item.title || 'Producto')}">
             <div class="cart-info">
               <strong>${escapeHTML(item.title || 'Producto')}</strong>
+              ${boxDetailsHTML(item)}
               <span class="cart-meta">${escapeHTML(item.typeLabel || getTypeLabel(item.type))} · ${escapeHTML(item.size || '')} · ${escapeHTML(item.color || '')}</span>
-              <span class="cart-meta">Cant: ${Number(item.qty || 1)} · ${MONEY.format(Number(item.unitPrice || 0) * Number(item.qty || 1))}</span>
+              <span class="cart-meta">${item.boxSize ? 'Paquetes' : 'Cant'}: ${Number(item.qty || 1)} · ${MONEY.format(BCPricing.unitCents(item) * Number(item.qty || 1) / 100)}</span>
+              ${item.boxSize ? `<button type="button" data-cart-edit-box="${index}">Editar diseños</button>` : ''}
             </div>
             <div class="qty-mini">
               <button type="button" data-cart-minus="${index}">-</button>
@@ -1856,13 +1826,22 @@
       }
 
       const totals = calculateOrderTotals(BC.cart);
-      const count = BC.cart.reduce((sum, item) => sum + Number(item.qty || 1), 0);
+      const count = BCPricing.count(BC.cart);
+      if (boxDraft) {
+        el.cartItems.insertAdjacentHTML('afterbegin', `<div class="box-cart-pending"><strong>BOX ${boxDraft.size} en selección</strong><p>${boxDraft.slots.length} de ${boxDraft.size} camisas. Completa o cancela esta selección para finalizar tu pedido.</p><button type="button" id="continueBox">Continuar mi BOX</button></div>`);
+        $('#continueBox').onclick = () => { closePanels(); showCatalog(true); };
+      }
 
       if (el.cartSubtotal) el.cartSubtotal.textContent = MONEY.format(totals.subtotal);
-      if (el.cartShipping) el.cartShipping.textContent = totals.shipping ? MONEY.format(totals.shipping) : 'Gratis';
+      if (el.cartShipping) el.cartShipping.textContent = BC.cart.length && !totals.shipping ? 'Gratis' : MONEY.format(totals.shipping);
       if (el.cartTotal) el.cartTotal.textContent = MONEY.format(totals.total);
       if (el.cartCount) el.cartCount.textContent = count;
       if (el.bottomCartCount) el.bottomCartCount.textContent = count;
+      $('#checkoutBtn').disabled = !BC.cart.length || Boolean(boxDraft);
+      $$('[data-cart-edit-box]', el.cartItems).forEach(btn => btn.onclick = () => {
+        const item = BC.cart[Number(btn.dataset.cartEditBox)];
+        closePanels(); startBox(item.boxSize, true, item);
+      });
 
       $$('[data-cart-minus]', el.cartItems).forEach((btn) => {
         btn.addEventListener('click', (event) => {
@@ -1882,7 +1861,7 @@
           event.stopPropagation();
           const index = Number(btn.dataset.cartPlus);
           if (!BC.cart[index]) return;
-          BC.cart[index].qty = Number(BC.cart[index].qty || 1) + 1;
+          BC.cart[index].qty = Math.min(100, Number(BC.cart[index].qty || 1) + 1);
           saveCart();
           renderCart();
         });
@@ -1905,6 +1884,15 @@
       const product = BC.selectedProduct;
 
       if (!product) return;
+
+      if (boxDraft && product.category === 'catalog' && BC.selectedVariant.type === 'oversize' && BCPricing.sizes.includes(BC.selectedVariant.size)) {
+        const remaining = boxDraft.size - boxDraft.slots.length;
+        if (BC.selectedVariant.qty > remaining) { alert(`Faltan ${remaining} camisas para completar tu BOX. Ajusta la cantidad.`); return; }
+        const qty = BC.selectedVariant.qty;
+        for (let i = 0; i < qty; i++) addCatalogToBox(product, BC.selectedVariant.size, BC.selectedVariant.color);
+        closeModal(); renderCart();
+        return;
+      }
 
       const item = buildCartItem(product);
       const existing = BC.cart.find((entry) => entry.key === item.key);
@@ -1936,39 +1924,16 @@ function trackMetaCheckout(items = [], channel = 'web') {
 }
 
 async function savePendingOrder(items = [], message = '', channel = 'whatsapp', customer = {}) {
-  if (!window.supabaseClient || !items.length) return null;
-
-  const total = calculateOrderTotals(items).total;
-  const mainItem = items[0];
-
-  const order = {
-    product_id: mainItem.id || '',
-    product_name: items.map((item) => item.title).join(' + '),
-    product_price: Number(mainItem.unitPrice || 0),
-    quantity: items.reduce((sum, item) => sum + Number(item.qty || 1), 0),
-    size: items.map((item) => item.size).join(', '),
-    total,
-    status: 'pending',
-    source: 'website',
-    checkout_channel: channel,
-    customer_phone: customer.phone || '',
-    whatsapp_message: message,
-  };
-
   try {
-    const { error } = await window.supabaseClient.from('orders').insert(order);
-
-    if (error) {
-      console.warn('BlackCat: no se pudo guardar pedido pendiente.', error);
-    }
-  } catch (error) {
-    console.warn('BlackCat: error guardando pedido pendiente.', error);
-  }
-
-  return order;
+    const response=await fetch('/.netlify/functions/create-order',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({items,message,customer,total:calculateOrderTotals(items).total})});
+    const data=await response.json();
+    if(!response.ok)throw Error(data.error||'No se pudo guardar el pedido.');
+    return data;
+  }catch(error){alert(error.message);return null;}
 }
 
 async function buySelectedNow() {
+  if (boxDraft) { addSelectedToCart(); return; }
   const product = BC.selectedProduct;
 
   if (!product) return;
@@ -1988,6 +1953,7 @@ function buildCartItem(product) {
     anime: product.anime,
     character: product.character,
     category: product.category,
+    premium: BCPricing.isPremium(product),
     image: product.image,
     type: BC.selectedVariant.type,
     typeLabel: getTypeLabel(BC.selectedVariant.type),
@@ -2045,6 +2011,7 @@ function buildWhatsAppMessage(items) {
     const category = item.category === 'hoodies' ? 'Hoodie' : item.category === 'extras' ? 'Producto exclusivo' : 'Camiseta';
     const typeText = item.typeLabel || getTypeLabel(item.type);
 
+    if (item.boxSize) return `${index + 1}. ${item.title} | Paquetes: ${item.qty} | ${MONEY.format(BCPricing.unitCents(item) * item.qty / 100)}\n${item.contents.map((part, n) => `   ${n + 1}) ${part.title} | Oversize | Talla: ${part.size} | Color: ${part.color}`).join('\n')}`;
     return `${index + 1}. ${item.title} | ${category} | ${typeText} | Talla: ${item.size} | Color: ${item.color} | Cant: ${item.qty} | ${MONEY.format(
       item.unitPrice * item.qty
     )}`;
@@ -2053,7 +2020,7 @@ function buildWhatsAppMessage(items) {
   const totals = calculateOrderTotals(items);
 
   return [
-    'Hola BlackCat, quiero consultar este pedido:',
+    'NUEVO PEDIDO · BLACK CAT',
     '',
     ...lines,
     '',
@@ -2061,7 +2028,7 @@ function buildWhatsAppMessage(items) {
     `Envío: ${totals.shipping ? MONEY.format(totals.shipping) : 'Gratis'}`,
     `Total: ${MONEY.format(totals.total)}`,
     '',
-    'Quedo pendiente para confirmar pago y entrega.',
+    'Confirmar método de pago: transferencia bancaria o efectivo contra entrega.',
   ].join('\n');
 }
 
@@ -2164,17 +2131,12 @@ async function payWithWompi(items = [], message = '', customer = {}) {
       throw new Error(data.error || data.detail || 'No se pudo crear el pago con tarjeta.');
     }
 
-    const wompiMessage = `${message}
-
-Referencia Wompi: ${data.orderRef || ''}`;
-
-    await savePendingOrder(items, wompiMessage, 'wompi', customer);
-
+    // The server has already saved the canonical order before issuing the payment link.
     document.getElementById('bcCheckoutOverlay')?.remove();
     window.location.href = data.urlEnlace;
   } catch (error) {
     console.warn('BlackCat: no se pudo iniciar pago Wompi.', error);
-    alert('No se pudo abrir el pago con tarjeta. Puedes intentar de nuevo o finalizar por WhatsApp.');
+    alert(error.message || 'No se pudo abrir el pago con tarjeta. Puedes intentar de nuevo o finalizar por WhatsApp.');
 
     if (btn) {
       btn.disabled = false;
@@ -2184,7 +2146,16 @@ Referencia Wompi: ${data.orderRef || ''}`;
     }
   }
 }
-function openCheckoutOptions(items) {
+async function openCheckoutOptions(items) {
+  if (typeof boxDraft !== 'undefined' && boxDraft) {
+    alert('Completa tu BOX o cancela su selección antes de finalizar el pedido.');
+    scrollToCatalog();
+    return;
+  }
+  await loadData();
+  try { items=BCPricing.quote(items); } catch(error) {alert(error.message);return;}
+  items = JSON.parse(JSON.stringify(items));
+  if (!items.length) return;
   const totals = calculateOrderTotals(items);
   const message = buildWhatsAppMessage(items);
   trackMetaCheckout(items, 'web');
@@ -2199,8 +2170,9 @@ function openCheckoutOptions(items) {
         ${items.map(i => `
           <div style="margin-bottom:10px;">
             <strong>${escapeHTML(i.title)}</strong><br>
+            ${boxDetailsHTML(i)}
             Talla: ${escapeHTML(i.size)} | Color: ${escapeHTML(i.color)}<br>
-            Cant: ${i.qty} | ${MONEY.format(Number(i.unitPrice || 0) * Number(i.qty || 1))}
+            ${i.boxSize ? 'Paquetes' : 'Cant'}: ${i.qty} | ${MONEY.format(BCPricing.unitCents(i) * Number(i.qty || 1) / 100)}
           </div>
         `).join("")}
 
@@ -2209,7 +2181,7 @@ function openCheckoutOptions(items) {
           <div>Subtotal: <strong>${MONEY.format(totals.subtotal)}</strong></div>
           <div>Envío: <strong>${totals.shipping ? MONEY.format(totals.shipping) : 'Gratis'}</strong></div>
           <h3 style="margin:4px 0;">Total: ${MONEY.format(totals.total)}</h3>
-          <small style="color:#b9f6ca;">Envío gratis en compras desde $50.</small>
+          <small style="color:#ddd;">${escapeHTML(BCPricing.shippingText())}</small>
         </div>
 
         <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px;margin:14px 0;">
@@ -2280,16 +2252,17 @@ function openCheckoutOptions(items) {
       currency: 'USD',
       checkout_channel: 'whatsapp',
     });
-    await savePendingOrder(items, finalMessage, 'whatsapp', customer || {});
-
-    openWhatsApp(finalMessage);
+    const saved = await savePendingOrder(items, finalMessage, 'whatsapp', customer || {});
+    if (!saved) return;
+    openWhatsApp(`Orden: ${saved.orderRef}\n\n${finalMessage}`);
   };
 
   document.getElementById('bcCardBtn').onclick = async () => {
     const customer = getCheckoutCustomerData(true);
     if (!customer) return;
 
-    const finalMessage = `${message}\n\n${buildCustomerDetailsText(customer)}`;
+    const cardMessage = message.replace('Confirmar método de pago: transferencia bancaria o efectivo contra entrega.', 'Método de pago: tarjeta mediante Wompi. Pendiente de aprobación.');
+    const finalMessage = `${cardMessage}\n\n${buildCustomerDetailsText(customer)}`;
     await payWithWompi(items, finalMessage, customer);
   };
 
@@ -2367,7 +2340,14 @@ function openCheckoutOptions(items) {
 
     function loadCart() {
       try {
-        BC.cart = JSON.parse(localStorage.getItem(BC.storageKey) || '[]');
+        const saved = JSON.parse(localStorage.getItem(BC.storageKey) || '[]');
+        if (!BCPricing.ready()) {BC.cart=Array.isArray(saved)?saved:[];return;}
+        BC.cart = Array.isArray(saved) ? saved.map(item => {
+          if (item.category === 'catalog' && item.type === 'boxyfit') item = {...item,type:'oversize',typeLabel:'Oversize',key:`${item.key}-oversize`};
+          try { return {...item,unitPrice:BCPricing.unitCents(item)/100}; } catch (_) {return item;}
+        }).filter(item => {
+          try { BCPricing.totals([item]); return true; } catch (_) { return false; }
+        }) : [];
       } catch (_) {
         BC.cart = [];
       }
@@ -2384,10 +2364,13 @@ function openCheckoutOptions(items) {
 
         slides.forEach((slide, i) => {
           slide.classList.toggle('active', i === BC.heroIndex);
+          slide.setAttribute('aria-hidden', String(i !== BC.heroIndex));
+          slide.inert = i !== BC.heroIndex;
         });
 
         dots.forEach((dot, i) => {
           dot.classList.toggle('active', i === BC.heroIndex);
+          dot.setAttribute('aria-current', String(i === BC.heroIndex));
         });
       };
 
@@ -2400,7 +2383,25 @@ function openCheckoutOptions(items) {
 
       clearInterval(BC.heroTimer);
 
-      BC.heroTimer = setInterval(() => show(BC.heroIndex + 1), 5200);
+      show(0);
+      const slider = $('#heroSlider');
+      const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+      let paused = motion.matches;
+      let hovering = false;
+      let focused = false;
+      const updateTimer = () => {
+        clearInterval(BC.heroTimer);
+        if (!paused && !hovering && !focused && !document.hidden) {
+          BC.heroTimer = setInterval(() => show(BC.heroIndex + 1), 3000);
+        }
+      };
+      slider?.addEventListener('mouseenter', () => { hovering = true; updateTimer(); });
+      slider?.addEventListener('mouseleave', () => { hovering = false; updateTimer(); });
+      slider?.addEventListener('focusin', () => { focused = true; updateTimer(); });
+      slider?.addEventListener('focusout', event => { focused = slider.contains(event.relatedTarget); updateTimer(); });
+      document.addEventListener('visibilitychange', updateTimer);
+      motion.addEventListener('change', () => { paused = motion.matches; updateTimer(); });
+      updateTimer();
     }
 
     function scrollToCatalog() {
@@ -2844,7 +2845,7 @@ function openCheckoutOptions(items) {
     }
     const BC_NEWSLETTER = {
       coupon: 'BLACKCAT10',
-      discountText: '10% OFF en tu primera compra',
+      discountText: '10% OFF en tu primera compra de camisas individuales del catálogo (no aplica a BOXES, Hoodies ni Accesorios)',
       leadKey: 'blackcat_club_lead_v1',
       leadsKey: 'blackcat_club_leads_v1',
       dismissedKey: 'blackcat_club_dismissed_at_v1',

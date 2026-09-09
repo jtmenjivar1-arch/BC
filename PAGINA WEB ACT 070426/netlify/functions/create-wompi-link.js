@@ -2,8 +2,8 @@
 
 const WOMPI_TOKEN_URL = 'https://id.wompi.sv/connect/token';
 const WOMPI_PAYMENT_LINK_URL = 'https://api.wompi.sv/EnlacePago';
-const SHIPPING_FEE = 1.99;
-const FREE_SHIPPING_THRESHOLD = 50;
+const pricing = require('../../js/pricing.js');
+const store = require('./lib/store');
 
 const json = (statusCode, payload) => ({
   statusCode,
@@ -28,11 +28,12 @@ function makeOrderRef() {
 }
 
 function buildDescription(items = [], message = '', customer = {}) {
-  const itemLines = items.slice(0, 8).map((item, index) => {
+  const itemLines = items.map((item, index) => {
     const title = String(item.title || 'Producto').slice(0, 80);
     const size = String(item.size || '').slice(0, 20);
     const color = String(item.color || '').slice(0, 30);
     const qty = Number(item.qty || 1);
+    if (item.boxSize) return `${index + 1}. ${title} | Paquetes: ${qty}\n${item.contents.map(part => `${part.title} | Oversize | ${part.size} | ${part.color}`).join('\n')}`;
     return `${index + 1}. ${title} | Talla: ${size} | Color: ${color} | Cant: ${qty}`;
   });
 
@@ -84,12 +85,14 @@ exports.handler = async (event) => {
     return json(400, { error: 'No hay productos para pagar.' });
   }
 
-  const subtotal = money(
-    items.reduce((sum, item) => sum + Number(item.unitPrice || 0) * Number(item.qty || 1), 0)
-  );
-  const qualifiesForFreeShipping = subtotal >= FREE_SHIPPING_THRESHOLD;
-  const shipping = subtotal > 0 && !qualifiesForFreeShipping ? SHIPPING_FEE : 0;
-  const total = money(subtotal + shipping);
+  let totals;
+  try {
+    totals = await store.quote(items);
+  } catch (error) {
+    return json(400, {error: error.message});
+  }
+  const {subtotal, shipping, total} = totals;
+  if (Math.round(Number(payload.total)*100)!==Math.round(total*100)) return json(409,{error:'Los precios cambiaron. Actualiza el carrito y confirma el nuevo total.',quote:totals});
 
   if (!total || total < 0.01) {
     return json(400, { error: 'El total del pedido no es válido.' });
@@ -97,10 +100,11 @@ exports.handler = async (event) => {
 
   const orderRef = makeOrderRef();
   const productName = items.length === 1
-    ? String(items[0].title || 'Pedido BlackCat').slice(0, 120)
+    ? String(totals.items[0].title || 'Pedido BlackCat').slice(0, 120)
     : `Pedido BlackCat (${items.length} productos)`;
 
   try {
+    await store.saveOrder(totals,orderRef,'wompi',customer,message);
     const tokenResponse = await fetch(WOMPI_TOKEN_URL, {
       method: 'POST',
       headers: {
@@ -136,7 +140,7 @@ exports.handler = async (event) => {
         permitePagoQuickPay: false,
       },
       infoProducto: {
-        descripcionProducto: buildDescription(items, message, customer),
+        descripcionProducto: buildDescription(totals.items, message, customer),
       },
       configuracion: {
         urlRedirect: `${siteUrl}/pago-wompi.html`,

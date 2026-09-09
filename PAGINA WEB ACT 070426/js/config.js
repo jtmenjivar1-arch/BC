@@ -263,6 +263,14 @@ const DEFAULT_SITE_DATA ={
   ]
 };
 
+// Local fallback shirt designs are available for the Oversize BOX selection.
+DEFAULT_SITE_DATA.products.forEach(product => {
+  if (!product.category && !product.shirt_mode) {
+    product.shirt_mode = 'basic_oversize';
+    product.sizes = ['S', 'M', 'L', 'XL'];
+  }
+});
+
 function deepClone(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
@@ -323,4 +331,3 @@ function setAdminAuthenticated(value) {
   if (value) localStorage.setItem(ADMIN_SESSION_KEY, 'ok');
   else localStorage.removeItem(ADMIN_SESSION_KEY);
 }
-
