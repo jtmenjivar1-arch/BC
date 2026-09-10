@@ -3774,3 +3774,15 @@ html{scroll-behavior:smooth;}
     min-height: 27px !important;
   }
 }
+.catalog-back-btn,
+.series-clear {
+  color: #171717 !important;
+  background: #ffffff !important;
+  border: 1px solid #171717 !important;
+  opacity: 1 !important;
+}
+.catalog-back-btn:hover,
+.series-clear:hover {
+  color: #ffffff !important;
+  background: #171717 !important;
+}
