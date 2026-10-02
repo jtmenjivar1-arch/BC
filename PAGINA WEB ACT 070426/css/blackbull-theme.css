@@ -132,3 +132,136 @@
  transition:opacity .8s ease-in-out,visibility 0s linear 0s!important;pointer-events:auto;
 }
 @media(prefers-reduced-motion:reduce){.bc-editorial .hero .hero-slider .hero-slide,.bc-editorial .hero .hero-slider .hero-slide.active{transition:none!important;}}
+
+
+/* BLACKCAT HALLOWEEN LOADER 2026 */
+/* Seasonal loading-screen details only. Easy to remove after Halloween. */
+.brand-intro{
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(74,39,87,.16), transparent 32%),
+    linear-gradient(180deg,#0a090d 0%,#030304 100%)!important;
+}
+
+/* Subtle spider webs in the upper corners */
+.brand-intro::before,
+.brand-intro::after{
+  content:"";
+  position:absolute;
+  top:-8px;
+  width:190px;
+  height:190px;
+  pointer-events:none;
+  opacity:.22;
+  background:
+    repeating-radial-gradient(
+      circle at 0 0,
+      transparent 0 18px,
+      rgba(205,190,215,.52) 19px 20px
+    ),
+    repeating-conic-gradient(
+      from 0deg at 0 0,
+      rgba(205,190,215,.44) 0deg 1.2deg,
+      transparent 1.2deg 30deg
+    );
+  mask-image:linear-gradient(135deg,#000 0 55%,transparent 82%);
+  -webkit-mask-image:linear-gradient(135deg,#000 0 55%,transparent 82%);
+}
+
+.brand-intro::before{
+  left:-6px;
+}
+
+.brand-intro::after{
+  right:-6px;
+  transform:scaleX(-1);
+}
+
+/* Keep the current BLACKCAT title, adding only the hanging spider */
+.brand-intro strong{
+  position:relative;
+  display:inline-block;
+  text-shadow:0 0 18px rgba(109,70,124,.20);
+  animation:bcHalloweenTitleGlow 2.1s ease-in-out infinite;
+}
+
+/* Thread */
+.brand-intro strong::before{
+  content:"";
+  position:absolute;
+  right:-25px;
+  top:-74px;
+  width:1px;
+  height:76px;
+  background:linear-gradient(
+    180deg,
+    rgba(225,218,230,.10),
+    rgba(225,218,230,.70)
+  );
+  transform-origin:top center;
+  animation:bcSpiderThread 2.35s ease-in-out infinite;
+}
+
+/* Spider */
+.brand-intro strong::after{
+  content:"🕷";
+  position:absolute;
+  right:-38px;
+  top:-2px;
+  width:28px;
+  height:28px;
+  display:grid;
+  place-items:center;
+  font-family:"Segoe UI Emoji","Apple Color Emoji",sans-serif;
+  font-size:24px;
+  line-height:1;
+  filter:grayscale(1) brightness(1.35);
+  transform-origin:50% -72px;
+  animation:bcSpiderSwing 2.35s ease-in-out infinite;
+}
+
+@keyframes bcSpiderSwing{
+  0%,100%{transform:rotate(-8deg) translateY(0)}
+  50%{transform:rotate(8deg) translateY(4px)}
+}
+
+@keyframes bcSpiderThread{
+  0%,100%{transform:rotate(-2deg)}
+  50%{transform:rotate(2deg)}
+}
+
+@keyframes bcHalloweenTitleGlow{
+  0%,100%{text-shadow:0 0 10px rgba(109,70,124,.16)}
+  50%{text-shadow:0 0 22px rgba(109,70,124,.38)}
+}
+
+@media(max-width:760px){
+  .brand-intro::before,
+  .brand-intro::after{
+    width:130px;
+    height:130px;
+    opacity:.18;
+  }
+
+  .brand-intro strong::before{
+    right:-18px;
+    top:-58px;
+    height:60px;
+  }
+
+  .brand-intro strong::after{
+    right:-30px;
+    top:-1px;
+    font-size:20px;
+    transform-origin:50% -56px;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .brand-intro strong,
+  .brand-intro strong::before,
+  .brand-intro strong::after{
+    animation:none!important;
+  }
+}
+/* END BLACKCAT HALLOWEEN LOADER 2026 */
