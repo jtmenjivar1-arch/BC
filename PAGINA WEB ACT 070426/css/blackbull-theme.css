@@ -265,3 +265,317 @@
   }
 }
 /* END BLACKCAT HALLOWEEN LOADER 2026 */
+
+
+/* BLACKCAT HALLOWEEN SITE THEME 2026 */
+/* Seasonal color layer. Remove this block and the body class to restore the prior look. */
+
+.bc-editorial.halloween-theme{
+  --paper:#040406;
+  --ink:#f2eff5;
+  --red:#6d467c;
+  --acid:#8f63a6;
+  --sage:#3a164f;
+  --lilac:#25112e;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(58,22,79,.13), transparent 28%),
+    radial-gradient(circle at 88% 18%, rgba(89,32,111,.08), transparent 30%),
+    linear-gradient(180deg,#040406 0%,#07070a 56%,#030304 100%)!important;
+  color:#f2eff5!important;
+}
+
+.bc-editorial.halloween-theme .topbar{
+  background:rgba(4,4,6,.96)!important;
+  border-color:#211a29!important;
+  color:#f2eff5!important;
+  box-shadow:0 8px 30px rgba(0,0,0,.28)!important;
+}
+
+.bc-editorial.halloween-theme .nav-links a,
+.bc-editorial.halloween-theme .brand-copy strong{
+  color:#ece7ef!important;
+}
+
+.bc-editorial.halloween-theme .brand-copy small{
+  color:#8f8998!important;
+}
+
+.bc-editorial.halloween-theme .topbar .brand-mark{
+  background:#0c0c10!important;
+  border:1px solid #211a29!important;
+}
+
+.bc-editorial.halloween-theme .topbar .wa-pill{
+  background:#151019!important;
+  border-color:#3d2a44!important;
+  color:#f0ebf2!important;
+}
+
+.bc-editorial.halloween-theme .topbar .cart-btn{
+  background:#0c0c10!important;
+  border-color:#211a29!important;
+}
+
+.bc-editorial.halloween-theme .topbar .cart-count{
+  background:#3a164f!important;
+}
+
+.bc-editorial.halloween-theme .promo-ticker{
+  position:relative;
+  overflow:hidden;
+  background:
+    linear-gradient(90deg,#050407 0%,#120a16 48%,#050407 100%)!important;
+  border-top:1px solid rgba(74,39,87,.28)!important;
+  border-bottom:1px solid rgba(74,39,87,.46)!important;
+  box-shadow:inset 0 0 28px rgba(58,22,79,.12)!important;
+}
+
+.bc-editorial.halloween-theme .promo-ticker::before,
+.bc-editorial.halloween-theme .promo-ticker::after{
+  content:"🕸";
+  position:absolute;
+  top:50%;
+  z-index:3;
+  transform:translateY(-52%);
+  font-size:18px;
+  opacity:.42;
+  pointer-events:none;
+  filter:grayscale(1) brightness(1.25);
+}
+
+.bc-editorial.halloween-theme .promo-ticker::before{left:10px;}
+.bc-editorial.halloween-theme .promo-ticker::after{right:10px;}
+
+.bc-editorial.halloween-theme .promo-track{
+  padding-left:42px!important;
+  padding-right:42px!important;
+}
+
+.bc-editorial.halloween-theme .promo-track span{
+  color:#d8cfdd!important;
+  text-shadow:0 0 10px rgba(109,70,124,.12);
+}
+
+.bc-editorial.halloween-theme .promo-track span:nth-child(2){
+  color:#a985b9!important;
+  font-weight:800!important;
+}
+
+.bc-editorial.halloween-theme .promo-track span:nth-child(4),
+.bc-editorial.halloween-theme .promo-track span:nth-child(8){
+  color:#f2eff5!important;
+}
+
+.bc-editorial.halloween-theme .hero{
+  background:#050507!important;
+}
+
+.bc-editorial.halloween-theme .hero .hero-slide{
+  background:#08080b!important;
+}
+
+.bc-editorial.halloween-theme .campaign-violet,
+.bc-editorial.halloween-theme .campaign-ice,
+.bc-editorial.halloween-theme .campaign-orchid{
+  --campaign-bg:#09090d!important;
+  --campaign-accent:#6d467c!important;
+  background:#09090d!important;
+  color:#f2eff5!important;
+}
+
+.bc-editorial.halloween-theme .campaign-copy,
+.bc-editorial.halloween-theme .campaign-copy *{
+  color:#f2eff5!important;
+}
+
+.bc-editorial.halloween-theme .campaign-kicker,
+.bc-editorial.halloween-theme .campaign-material{
+  color:#9d94a4!important;
+}
+
+.bc-editorial.halloween-theme .campaign-cta{
+  background:#25112e!important;
+  border-color:#4a2757!important;
+  color:#fff!important;
+}
+
+.bc-editorial.halloween-theme .campaign-catalog{
+  color:#9a7aa8!important;
+}
+
+.bc-editorial.halloween-theme .hero .hero-dot.active{
+  background:#6d467c!important;
+  color:#fff!important;
+}
+
+.bc-editorial.halloween-theme .box-section{
+  background:linear-gradient(90deg,#0a080d,#17101c,#0a080d)!important;
+  color:#fff!important;
+  border-top:1px solid #211a29!important;
+  border-bottom:1px solid #211a29!important;
+}
+
+.bc-editorial.halloween-theme .box-compact-options button{
+  background:#0b0a0e!important;
+  border-color:#34243c!important;
+  color:#f2eff5!important;
+}
+
+.bc-editorial.halloween-theme .box-compact-options button[aria-pressed=true]{
+  background:#25112e!important;
+  border-color:#4a2757!important;
+}
+
+.bc-editorial.halloween-theme #categorias{
+  background:#050507!important;
+  color:#fff!important;
+}
+
+.bc-editorial.halloween-theme #lineas-especiales,
+.bc-editorial.halloween-theme #catalogo,
+.bc-editorial.halloween-theme .how-section,
+.bc-editorial.halloween-theme .search-band{
+  background:#07070a!important;
+  color:#f2eff5!important;
+}
+
+.bc-editorial.halloween-theme .special-card,
+.bc-editorial.halloween-theme .special-card:first-child{
+  background:linear-gradient(145deg,#0d0d11,#151019)!important;
+  border-color:#211a29!important;
+  color:#f2eff5!important;
+}
+
+.bc-editorial.halloween-theme .special-card strong{
+  color:#f2eff5!important;
+}
+
+.bc-editorial.halloween-theme .special-card .special-kicker,
+.bc-editorial.halloween-theme .special-card small{
+  color:#8f8998!important;
+}
+
+.bc-editorial.halloween-theme .search-panel{
+  background:linear-gradient(135deg,#0c0c10,#120e15)!important;
+  border-color:#211a29!important;
+}
+
+.bc-editorial.halloween-theme .catalog-search{
+  background:transparent!important;
+  color:#f2eff5!important;
+}
+
+.bc-editorial.halloween-theme .catalog-search input{
+  background:#07070a!important;
+  color:#f2eff5!important;
+  border:1px solid #28212e!important;
+}
+
+.bc-editorial.halloween-theme .shirt-grid{
+  background:#17121c!important;
+}
+
+.bc-editorial.halloween-theme .shirt-grid .shirt-card{
+  background:#0c0c10!important;
+  border-color:#211a29!important;
+}
+
+.bc-editorial.halloween-theme .shirt-grid .shirt-card:hover{
+  border-color:#4a2757!important;
+}
+
+.bc-editorial.halloween-theme .shirt-grid .shirt-body,
+.bc-editorial.halloween-theme .shirt-grid .shirt-body h3,
+.bc-editorial.halloween-theme .shirt-grid .card-commerce strong{
+  color:#f2eff5!important;
+}
+
+.bc-editorial.halloween-theme .shirt-grid .mini-badge{
+  color:#8f8998!important;
+}
+
+.bc-editorial.halloween-theme .shirt-grid .shirt-badge{
+  background:#3a164f!important;
+  color:#fff!important;
+}
+
+.bc-editorial.halloween-theme .card-hover-action{
+  background:#18101d!important;
+  color:#fff!important;
+}
+
+.bc-editorial.halloween-theme .box-builder{
+  color:#f2eff5!important;
+  border-color:#211a29!important;
+}
+
+.bc-editorial.halloween-theme .box-progress-heading span,
+.bc-editorial.halloween-theme .box-builder p,
+.bc-editorial.halloween-theme .box-builder small{
+  color:#8f8998!important;
+}
+
+.bc-editorial.halloween-theme .box-builder button{
+  color:#f2eff5!important;
+  border-color:#34243c!important;
+}
+
+.bc-editorial.halloween-theme .box-complete{
+  background:#18101d!important;
+  border-color:#4a2757!important;
+  color:#fff!important;
+}
+
+.bc-editorial.halloween-theme .how-card{
+  background:#0c0c10!important;
+  border-color:#211a29!important;
+  color:#f2eff5!important;
+}
+
+.bc-editorial.halloween-theme .how-card strong{
+  color:#f2eff5!important;
+}
+
+.bc-editorial.halloween-theme .how-card p{
+  color:#8f8998!important;
+}
+
+.bc-editorial.halloween-theme .filters button.active{
+  background:#3a164f!important;
+  color:#fff!important;
+  border-color:#4a2757!important;
+}
+
+.bc-editorial.halloween-theme .site-footer{
+  background:#030304!important;
+  color:#f2eff5!important;
+  border-top:1px solid #18131d!important;
+}
+
+.bc-editorial.halloween-theme .site-footer p,
+.bc-editorial.halloween-theme .footer-bottom small{
+  color:#8f8998!important;
+}
+
+.bc-editorial.halloween-theme .site-footer h2,
+.bc-editorial.halloween-theme .site-footer a{
+  color:#ece7ef!important;
+}
+
+.bc-editorial.halloween-theme .footer-bottom{
+  border-top-color:#211a29!important;
+}
+
+@media(max-width:760px){
+  .bc-editorial.halloween-theme .promo-ticker::before,
+  .bc-editorial.halloween-theme .promo-ticker::after{
+    font-size:15px;
+    opacity:.34;
+  }
+
+  .bc-editorial.halloween-theme .promo-track{
+    padding-left:32px!important;
+    padding-right:32px!important;
+  }
+}
+/* END BLACKCAT HALLOWEEN SITE THEME 2026 */
