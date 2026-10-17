@@ -1,0 +1,74 @@
+{
+  "proyecto": "Catálogo Social Black Cat",
+  "fuente": "Instagram @blackcat.sivar",
+  "descripcion": "Lote piloto. No importar a Meta ni a WhatsApp hasta verificar nombre, precio, imagen y datos de compra.",
+  "separado_de_tabla_web": "public.products",
+  "estado": "pendiente_de_verificacion",
+  "publicaciones": [
+    {
+      "orden": 1,
+      "instagram_shortcode": "DejzUlKkRkq",
+      "instagram_url": "https://www.instagram.com/p/DejzUlKkRkq/",
+      "sku_propuesto": "BC-IG-DEJZULKKRKQ",
+      "nombre": null,
+      "precio_usd": null,
+      "imagen_url": null,
+      "descripcion": null,
+      "destino_compra": null,
+      "autorizado_para_publicar": false,
+      "estado": "pendiente_de_ficha"
+    },
+    {
+      "orden": 2,
+      "instagram_shortcode": "DePmGBimbCy",
+      "instagram_url": "https://www.instagram.com/p/DePmGBimbCy/",
+      "sku_propuesto": "BC-IG-DEPMGBIMBCY",
+      "nombre": null,
+      "precio_usd": null,
+      "imagen_url": null,
+      "descripcion": null,
+      "destino_compra": null,
+      "autorizado_para_publicar": false,
+      "estado": "pendiente_de_ficha"
+    },
+    {
+      "orden": 3,
+      "instagram_shortcode": "Dby6-L4kRGf",
+      "instagram_url": "https://www.instagram.com/p/Dby6-L4kRGf/",
+      "sku_propuesto": "BC-IG-DBY6L4KRGF",
+      "nombre": null,
+      "precio_usd": null,
+      "imagen_url": null,
+      "descripcion": null,
+      "destino_compra": null,
+      "autorizado_para_publicar": false,
+      "estado": "pendiente_de_ficha"
+    },
+    {
+      "orden": 4,
+      "instagram_shortcode": "Dao1fdIjI3M",
+      "instagram_url": "https://www.instagram.com/p/Dao1fdIjI3M/",
+      "sku_propuesto": "BC-IG-DAO1FDIJI3M",
+      "nombre": null,
+      "precio_usd": null,
+      "imagen_url": null,
+      "descripcion": null,
+      "destino_compra": null,
+      "autorizado_para_publicar": false,
+      "estado": "pendiente_de_ficha"
+    },
+    {
+      "orden": 5,
+      "instagram_shortcode": "Db3ZfWPkYPw",
+      "instagram_url": "https://www.instagram.com/p/Db3ZfWPkYPw/",
+      "sku_propuesto": "BC-IG-DB3ZFWPKYPW",
+      "nombre": null,
+      "precio_usd": null,
+      "imagen_url": null,
+      "descripcion": null,
+      "destino_compra": null,
+      "autorizado_para_publicar": false,
+      "estado": "pendiente_de_ficha"
+    }
+  ]
+}
