@@ -36,3 +36,18 @@ Para cada uno reunir:
 
 ## Nota técnica
 `meta_products` contiene una ficha de prueba existente. Debe examinarse y tratarse como dato previo, no se considera una importación realizada desde Instagram.
+
+
+## Avance del lote piloto: capturas recibidas
+Se identificaron visualmente los cinco productos y precios siguientes:
+1. ONE PIECE X DD — USD 24.99
+2. YOUNGLA X NARUTO VOL. 2 — USD 29.00
+3. Bleach Vol. 2 — USD 32.99
+4. GURREN LAGANN x NEXUS INK — USD 24.99
+5. BLSCK CLOVER x NEXUS INK Vol. 1 — USD 32.99 (verificar la aparente errata BLSCK)
+
+Se hicieron recortes de las cinco fotografías desde las capturas para preparar material preliminar; las versiones originales tienen mejor calidad y son preferibles para Meta.
+
+**Importante**: se asignó cada captura a cada enlace de Instagram por el orden en que fueron enviados. No se pudo comprobar directamente la correspondencia por el contenido privado/limitado de Instagram; debe confirmarla el propietario antes de cualquier publicación.
+
+La fuente de datos de prueba solo publica registros marcados explícitamente `aprobado` y `autorizado_para_publicar=true`, con URL HTTPS de fotografía y destino de compra. En este lote todos continúan desactivados. No hubo cambios en Meta, WhatsApp, Supabase ni el despliegue de producción.
