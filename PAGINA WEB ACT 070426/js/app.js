@@ -2363,6 +2363,12 @@ async function openCheckoutOptions(items) {
         BC.heroIndex = (index + slides.length) % slides.length;
 
         slides.forEach((slide, i) => {
+          // Fetch promotional artwork only when that slide becomes visible.
+          const image = slide.querySelector('.hero-main-image[data-src]');
+          if (i === BC.heroIndex && image) {
+            image.src = image.dataset.src;
+            image.removeAttribute('data-src');
+          }
           slide.classList.toggle('active', i === BC.heroIndex);
           slide.setAttribute('aria-hidden', String(i !== BC.heroIndex));
           slide.inert = i !== BC.heroIndex;
