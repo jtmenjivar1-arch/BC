@@ -1,0 +1,69 @@
+{
+  "brand": "BLACKCAT STREETWEAR",
+  "format": "9:16",
+  "status": "draft_requires_review",
+  "channel": "https://youtube.com/@blackcatsv16",
+  "ideas": [
+    {
+      "id": 1,
+      "title": "Del diseño al DTF",
+      "hook": "Así nace una BLACKCAT",
+      "scenes": [
+        "preparación de archivos",
+        "impresión DTF",
+        "prensa y producto",
+        "detalle final",
+        "CTA"
+      ],
+      "requires_assets": [
+        "material propio de producción"
+      ],
+      "publish": false
+    },
+    {
+      "id": 2,
+      "title": "Oversize vs Regular",
+      "hook": "La diferencia está en el corte",
+      "scenes": [
+        "comparativa de siluetas",
+        "ancho de mangas",
+        "toma lateral",
+        "detalle",
+        "CTA"
+      ],
+      "requires_assets": [
+        "camisas reales en ambos cortes"
+      ],
+      "publish": false
+    },
+    {
+      "id": 3,
+      "title": "Tu próximo drop",
+      "hook": "No es solo una camisa",
+      "scenes": [
+        "editorial BLACKCAT",
+        "tipografía",
+        "silueta oversize",
+        "web"
+      ],
+      "requires_assets": [],
+      "publish": false
+    },
+    {
+      "id": 4,
+      "title": "Cómo comprar en BLACKCAT",
+      "hook": "Pedí tu look en minutos",
+      "scenes": [
+        "abrir catálogo web",
+        "elegir diseño",
+        "seleccionar talla",
+        "checkout",
+        "CTA"
+      ],
+      "requires_assets": [
+        "capturas aprobadas de web"
+      ],
+      "publish": false
+    }
+  ]
+}
