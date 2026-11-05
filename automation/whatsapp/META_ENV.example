@@ -4,6 +4,10 @@ META_APP_SECRET=SECRETO_APP_META
 META_PHONE_NUMBER_ID=ID_DE_NUMERO_DE_META
 META_ACCESS_TOKEN=TOKEN_PERMANENTE_DE_META
 META_GRAPH_VERSION=v23.0
+# disabled: sólo verifica y recibe; test: sólo responde a los remitentes de prueba.
+# live: sólo después de las pruebas y la aprobación expresa del propietario.
+BLACKCAT_WHATSAPP_MODE=disabled
+BLACKCAT_WHATSAPP_TEST_SENDERS=
 # Opcionales:
 OPENAI_API_KEY=
 OPENAI_MODEL=gpt-4.1-mini

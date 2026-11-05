@@ -8,7 +8,8 @@ Dos módulos independientes para BLACKCAT STREETWEAR. **No modifica la tienda ni
 - Función nueva: `blackcat-whatsapp-ai` (verifica una firma HMAC SHA256 real de Meta)
 - Endpoint de configuración en Meta: `https://gzwcdmcxpbkqnszpfwoa.supabase.co/functions/v1/blackcat-whatsapp-ai`
 - Webhook GET: desafío `hub.challenge`, protegido mediante `META_VERIFY_TOKEN`.
-- Webhook POST: exige `X-Hub-Signature-256` y `META_APP_SECRET`. Sin tokens, retorna error seguro y no envía mensajes.
+- Webhook POST: exige `X-Hub-Signature-256` y `META_APP_SECRET`. Para responder, el evento debe ser `messages` y corresponder al `META_PHONE_NUMBER_ID` configurado.
+- Modo inicial `disabled`: acepta eventos firmados sin consultar datos, guardar eventos ni responder. Una variable ausente o desconocida también bloquea las respuestas.
 - Respuestas sólo a mensajes entrantes, en ventana de servicio. Sin campañas salientes ni plantillas automáticas.
 - Catálogo leído de `public.products` con `brand='blackcat'`, `active=true` y precios de base de datos.
 - Envíos: costo leído de `site_settings.commerce_config.shipping`. **No** cotiza precios de BOX no confirmados.
@@ -18,13 +19,13 @@ Dos módulos independientes para BLACKCAT STREETWEAR. **No modifica la tienda ni
 
 ### Para activar con Meta
 
-1. Desde Meta for Developers, vincular el negocio y verificar acceso a WhatsApp Business Platform. Comprobar primero si el número actual es elegible para **coexistencia** con WhatsApp Business App; no migrarlo a Cloud API exclusiva sin analizar las consecuencias.
+1. En el portafolio BLACK CAT., usar únicamente el flujo oficial de **coexistencia** para el número comercial. Si Meta no ofrece conectar el número existente y conservar WhatsApp Business en el teléfono, detener el alta del número.
 2. Configurar en el panel Supabase Edge Function Secrets: `META_VERIFY_TOKEN` (valor aleatorio largo), `META_APP_SECRET` (secreto de la app Meta), `META_PHONE_NUMBER_ID`, `META_ACCESS_TOKEN`, `META_GRAPH_VERSION` (versión compatible). **No añadir secretos al repositorio.**
 3. Opcional: `OPENAI_API_KEY` y `OPENAI_MODEL` para respuestas generativas; sin ellas sigue funcionando la búsqueda determinista, una vez conectado.
 4. En Meta registrar la URL anterior y el mismo Verify Token; suscribir campo `messages`.
-5. Probar primero con número de pruebas, mensajes duplicados, invalidación de firma, consulta de producto, orden, asesor y ausencia de orden; después habilitar número comercial con aprobación expresa.
+5. Configurar `BLACKCAT_WHATSAPP_MODE=test` y `BLACKCAT_WHATSAPP_TEST_SENDERS` con los números de prueba autorizados, en formato internacional y separados por comas. Sin números de prueba no salen mensajes. Probar entrega y recepción, duplicados, firma inválida, remitentes fuera de la lista, catálogo, envíos y derivación a un asesor. Comprobar en el teléfono que WhatsApp Business sigue operando con el número comercial.
 6. Mantener una bandeja humana adecuada o la app en coexistencia; registrar la bandera de asesor **no** envía notificaciones a un operador por sí sola.
-7. Confirmar condiciones comerciales, protección de datos y tarifas de Meta/OpenAI; sólo después habilitar servicio permanente.
+7. Cambiar a `BLACKCAT_WHATSAPP_MODE=live` sólo después de las pruebas y de recibir la aprobación expresa del propietario. Para detener respuestas, restaurar `disabled`.
 
 ### Despliegue y advertencias
 La función está desplegada, pero no se han configurado secretos ni vinculado número a Meta. Permanece **inactiva para clientes reales**. Los cambios en este PR son independientes de la tienda; no desplegar la rama a Netlify por ser ajena al frontend.

@@ -125,8 +125,7 @@ Deno.serve(async (req: Request) => {
     return valid?new Response(url.searchParams.get("hub.challenge") || "",{status:200}):json({error:"verification failed"},403);
   }
   if(req.method!=="POST") return json({error:"method not allowed"},405);
-  if(!appSecret || !verifyToken || !env("META_ACCESS_TOKEN") || !env("META_PHONE_NUMBER_ID"))
-    return json({error:"integration not yet activated"},503);
+  if(!appSecret) return json({error:"not configured"},503);
   const raw=await req.text();
   if(raw.length>500000) return json({error:"payload too large"},413);
   if(!await validSignature(raw,req.headers.get("x-hub-signature-256"),appSecret))
@@ -134,14 +133,24 @@ Deno.serve(async (req: Request) => {
   let payload:any;
   try {payload=JSON.parse(raw);}catch{return json({error:"invalid JSON"},400);}
   if(payload?.object!=="whatsapp_business_account") return json({ok:true});
+  const mode=env("BLACKCAT_WHATSAPP_MODE");
+  if(mode!=="test" && mode!=="live") return json({ok:true});
+  const testSenders=env("BLACKCAT_WHATSAPP_TEST_SENDERS").split(",")
+    .map(value=>value.trim()).filter(value=>/^\+?\d{8,16}$/.test(value)).map(digits);
+  if(mode==="test" && testSenders.length===0) return json({ok:true});
+  const phoneNumberId=env("META_PHONE_NUMBER_ID");
+  if(!verifyToken || !env("META_ACCESS_TOKEN") || !phoneNumberId)
+    return json({error:"integration not configured"},503);
   const supabaseUrl=env("SUPABASE_URL"), serviceKey=env("SUPABASE_SERVICE_ROLE_KEY");
   if(!supabaseUrl || !serviceKey) return json({error:"database not configured"},503);
   const db=createClient(supabaseUrl,serviceKey,{auth:{persistSession:false}});
   for(const entry of (payload.entry||[]).slice(0,3)) {
     for(const change of (entry.changes||[]).slice(0,3)) {
+      if(change.field!=="messages" || change.value?.metadata?.phone_number_id!==phoneNumberId) continue;
       for(const message of (change.value?.messages||[]).slice(0,5)) {
         const sender=digits(String(message.from||"")), messageId=String(message.id||"");
         if(!/^\d{8,16}$/.test(sender) || !messageId || messageId.length>220) continue;
+        if(mode==="test" && !testSenders.includes(sender)) continue;
         const digest=hex(await hmac(appSecret,sender));
         const {error:insertError}=await db.from("blackcat_ai_events").insert({message_id:messageId,sender_digest:digest});
         if(insertError?.code==="23505") continue;
