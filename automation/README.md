@@ -10,9 +10,9 @@ Dos módulos independientes para BLACKCAT STREETWEAR. **No modifica la tienda ni
 - Webhook GET: desafío `hub.challenge`, protegido mediante `META_VERIFY_TOKEN`.
 - Webhook POST: exige `X-Hub-Signature-256` y `META_APP_SECRET`. Para responder, el evento debe ser `messages` y corresponder al `META_PHONE_NUMBER_ID` configurado.
 - Modo inicial `disabled`: acepta eventos firmados sin consultar datos, guardar eventos ni responder. Una variable ausente o desconocida también bloquea las respuestas.
-- Respuestas sólo a mensajes entrantes, en ventana de servicio. Sin campañas salientes ni plantillas automáticas.
-- Catálogo leído de `public.products` con `brand='blackcat'`, `active=true` y precios de base de datos.
-- Envíos: costo leído de `site_settings.commerce_config.shipping`. **No** cotiza precios de BOX no confirmados.
+- Respuestas sólo a mensajes entrantes de las últimas 24 horas. Sin campañas salientes ni plantillas automáticas.
+- Catálogo leído de `public.products` con `brand='blackcat'`, `active=true`, cortes disponibles y precios de la base de datos. Hoodies y accesorios se muestran con su precio de producto.
+- Envíos: costo y umbral de envío gratis de la web leídos de `site_settings.commerce_config`. Las promociones BOX se consultan en la tienda.
 - Estado de orden: sólo consulta `public.orders`, con número WhatsApp remitente coincidente; no devuelve direcciones, montos o datos ajenos. `blackcat_manual_orders` sigue privado.
 - Atención humana: comando `asesor` bloquea respuestas automáticas posteriores y registra bandera, sin texto ni número almacenados. Para regresar: `volver al bot`.
 - Deduplicación: tabla `blackcat_ai_events` almacena únicamente ID de mensaje, digest HMAC del remitente y estado, no mensajes.
@@ -29,6 +29,8 @@ Dos módulos independientes para BLACKCAT STREETWEAR. **No modifica la tienda ni
 
 ### Despliegue y advertencias
 La función está desplegada, pero no se han configurado secretos ni vinculado número a Meta. Permanece **inactiva para clientes reales**. Los cambios en este PR son independientes de la tienda; no desplegar la rama a Netlify por ser ajena al frontend.
+
+Pruebas locales desde la raíz del repositorio con Node.js 24: `node --test automation/whatsapp/webhook.test.mjs`. Usan datos sintéticos y no contactan WhatsApp, Supabase ni OpenAI.
 
 ## 2. BLACKCAT VIDEO STUDIO
 

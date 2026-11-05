@@ -7,6 +7,8 @@ const json = (v: unknown, status=200) => new Response(JSON.stringify(v), {
 const normalize = (v: string) => v.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 const digits = (v: string) => v.replace(/\D/g, "");
 const money = (v: unknown) => Number.isFinite(Number(v)) && Number(v)>0 ? "$"+Number(v).toFixed(2) : null;
+const formatCents = (value: unknown) => typeof value==="number" && Number.isInteger(value) && value>=0
+  ? "$"+(value/100).toFixed(2) : null;
 
 async function hmac(secret: string, message: string): Promise<Uint8Array> {
   const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(secret),{name:"HMAC",hash:"SHA-256"},false,["sign"]);
@@ -54,8 +56,23 @@ async function aiAnswer(question: string, facts: string): Promise<string | null>
 
 function productList(items: any[]) {
   return items.map((p:any) => {
-    const base=money(p.price_basic), over=money(p.price_oversize || p.price);
-    const parts=[base && "Regular "+base,over && "Oversize "+over].filter(Boolean);
+    const category=normalize(String(p.category || ""));
+    const price=money(p.price);
+    if(/hoodie|sudadera|termo|tote|accesorio|extra/.test(category)) {
+      return "• "+String(p.title).slice(0,85)+": "+(price || "precio por confirmar");
+    }
+    const mode=String(p.shirt_mode || "");
+    const types=Array.isArray(p.types) && p.types.length ? p.types
+      : mode==="both" ? ["basic","oversize"] : mode.split("_");
+    const variants=[
+      {available:types.includes("basic"),label:"Regular",value:p.price_basic},
+      {available:types.includes("oversize") || types.includes("boxyfit"),label:"Oversize",value:p.price_oversize},
+      {available:types.includes("croptop"),label:"Croptop",value:p.price_croptop},
+    ];
+    const parts=variants.flatMap(({available,label,value})=>{
+      const amount=money(value) || price;
+      return available && amount ? [label+" "+amount] : [];
+    });
     return "• "+String(p.title).slice(0,85)+": "+(parts.join(" / ") || "precio por confirmar");
   }).join("\n");
 }
@@ -83,11 +100,13 @@ async function respond(text: string, sender: string, digest: string, db: any): P
     return {body:"No encontré una orden web asociada a este número. Las órdenes de WhatsApp/Instagram se revisan con un asesor. Escribí «asesor» y compartí tu número de orden.",status:"replied"};
   }
 
-  const {data:settings}=await db.from("site_settings").select("commerce_config").eq("id",1).maybeSingle();
-  const shippingCents=Number(settings?.commerce_config?.shipping);
-  const shipping=Number.isFinite(shippingCents) && shippingCents>=0 ? "$"+(shippingCents/100).toFixed(2) : "por confirmar";
   if(/(envio|entrega|domicilio|despacho|tiempo de entrega)/.test(q)) {
-    return {body:"🚚 Envío nacional BLACKCAT: "+shipping+". El plazo habitual indicado es de 48 horas hábiles, sujeto a confirmación del pedido y cobertura. Catálogo: https://blackcatsv.shop",status:"replied"};
+    const {data:settings}=await db.from("site_settings").select("commerce_config").eq("id",1).maybeSingle();
+    const config=settings?.commerce_config;
+    const shipping=formatCents(config?.shipping) || "por confirmar";
+    const freeAbove=formatCents(config?.freeAbove);
+    const freeShipping=freeAbove ? " En la web, el envío es gratis en compras mayores de "+freeAbove+"." : "";
+    return {body:"🚚 Envío nacional BLACKCAT: "+shipping+"."+freeShipping+" El plazo habitual es de 48 horas hábiles, sujeto a confirmación del pedido y cobertura. Catálogo: https://blackcatsv.shop",status:"replied"};
   }
   if(/(promocion|promo|oferta|box|descuento|2x|3x)/.test(q)) {
     return {body:"🔥 Tenemos promociones y BOX que cambian según la colección. Para darte el precio exacto vigente, revisá https://blackcatsv.shop o escribí «asesor». ¿Qué diseños te interesan?",status:"replied"};
@@ -97,7 +116,7 @@ async function respond(text: string, sender: string, digest: string, db: any): P
   }
 
   const {data:products,error}=await db.from("products")
-    .select("title,character,anime,category,price,price_basic,price_oversize")
+    .select("title,character,anime,category,shirt_mode,types,price,price_basic,price_oversize,price_croptop")
     .eq("brand","blackcat").eq("active",true).limit(300);
   if(error || !products?.length) return {body:"¡Hola! 🖤 Somos BLACKCAT STREETWEAR. Mirá el catálogo en https://blackcatsv.shop. Para consultar un producto en particular, escribí «asesor».",status:"replied"};
   const stop=new Set(["hola","buenas","quiero","buscar","busco","cuanto","cuesta","precio","camisa","camisas","oversize","regular","talla","color","tienen","para","una","uno","de","la","el","las","los","por","favor","diseno","disenos","me","del","con","estoy"]);
@@ -110,7 +129,7 @@ async function respond(text: string, sender: string, digest: string, db: any): P
   const facts=productList(matches);
   if(matches.length) {
     const response=await aiAnswer(text,facts);
-    return {body:response || "🖤 Encontré estas opciones en BLACKCAT:\n"+facts+"\n\nDetalles y diseños: https://blackcatsv.shop\n¿En qué talla te interesa?",status:"replied"};
+    return {body:response || "🖤 Encontré estas opciones en BLACKCAT:\n"+facts+"\n\nDetalles y diseños: https://blackcatsv.shop\n¿Cuál te interesa?",status:"replied"};
   }
   return {body:"¡Hola! 🖤 Soy el asistente de BLACKCAT STREETWEAR. Te ayudo a encontrar diseños, consultar tallas, precios del catálogo y envíos. Catálogo: https://blackcatsv.shop\n\n¿Qué colección buscás? También podés escribir «asesor».",status:"replied"};
 }
@@ -151,6 +170,8 @@ Deno.serve(async (req: Request) => {
         const sender=digits(String(message.from||"")), messageId=String(message.id||"");
         if(!/^\d{8,16}$/.test(sender) || !messageId || messageId.length>220) continue;
         if(mode==="test" && !testSenders.includes(sender)) continue;
+        const messageAge=Date.now()-Number(message.timestamp)*1000;
+        if(!Number.isFinite(messageAge) || messageAge<0 || messageAge>=24*60*60*1000) continue;
         const digest=hex(await hmac(appSecret,sender));
         const {error:insertError}=await db.from("blackcat_ai_events").insert({message_id:messageId,sender_digest:digest});
         if(insertError?.code==="23505") continue;
