@@ -100,13 +100,28 @@ async function respond(text: string, sender: string, digest: string, db: any): P
     return {body:"No encontré una orden web asociada a este número. Las órdenes de WhatsApp/Instagram se revisan con un asesor. Escribí «asesor» y compartí tu número de orden.",status:"replied"};
   }
 
-  if(/(envio|entrega|domicilio|despacho|tiempo de entrega)/.test(q)) {
+  const boxSize=q.match(/\bbox\s*(?:de\s+)?([234])\b/)?.[1];
+  if(boxSize || /(envio|entrega|domicilio|despacho|tiempo de entrega)/.test(q)) {
     const {data:settings}=await db.from("site_settings").select("commerce_config").eq("id",1).maybeSingle();
     const config=settings?.commerce_config;
-    const shipping=formatCents(config?.shipping) || "por confirmar";
+    const shipping=formatCents(config?.shipping);
     const freeAbove=formatCents(config?.freeAbove);
+    if(boxSize) {
+      const boxCents=config?.boxes?.[boxSize];
+      const boxPrice=formatCents(boxCents);
+      if(!boxPrice || boxCents===0) {
+        return {body:`El precio de la BOX ${boxSize} está por confirmar. Consultá https://blackcatsv.shop o escribí «asesor».`,status:"replied"};
+      }
+      if(!shipping || !freeAbove) {
+        return {body:`En la web, la BOX ${boxSize} cuesta ${boxPrice}, con envío por confirmar. https://blackcatsv.shop`,status:"replied"};
+      }
+      const feeCents=boxCents>config.freeAbove ? 0 : config.shipping;
+      const delivery=feeCents===0 ? "El envío nacional es gratis." : `El envío nacional cuesta ${formatCents(feeCents)}.`;
+      const total=formatCents(boxCents+feeCents);
+      return {body:`En la web, la BOX ${boxSize} cuesta ${boxPrice}. ${delivery} Si comprás solo esa BOX, el total es ${total}. https://blackcatsv.shop`,status:"replied"};
+    }
     const freeShipping=freeAbove ? " En la web, el envío es gratis en compras mayores de "+freeAbove+"." : "";
-    return {body:"🚚 Envío nacional BLACKCAT: "+shipping+"."+freeShipping+" El plazo habitual es de 48 horas hábiles, sujeto a confirmación del pedido y cobertura. Catálogo: https://blackcatsv.shop",status:"replied"};
+    return {body:"🚚 Envío nacional BLACKCAT: "+(shipping || "por confirmar")+"."+freeShipping+" El plazo habitual es de 48 horas hábiles, sujeto a confirmación del pedido y cobertura. Catálogo: https://blackcatsv.shop",status:"replied"};
   }
   if(/(promocion|promo|oferta|box|descuento|2x|3x)/.test(q)) {
     return {body:"🔥 Tenemos promociones y BOX que cambian según la colección. Para darte el precio exacto vigente, revisá https://blackcatsv.shop o escribí «asesor». ¿Qué diseños te interesan?",status:"replied"};

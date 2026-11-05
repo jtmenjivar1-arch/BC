@@ -17,7 +17,7 @@ const settings = {
   SUPABASE_SERVICE_ROLE_KEY: 'synthetic-key',
 };
 
-function harness(overrides = {}) {
+function harness(overrides = {}, commerce = { shipping: 399, freeAbove: 5500, boxes: { 2: 3999, 3: 5599, 4: 7499 } }) {
   const env = { ...settings, ...overrides };
   const sends = [];
   const writes = new Set();
@@ -40,7 +40,7 @@ function harness(overrides = {}) {
         in() { return query; },
         order() { return query; },
         maybeSingle() {
-          if (table === 'site_settings') return { data: { commerce_config: { shipping: 399, freeAbove: 5500 } } };
+          if (table === 'site_settings') return { data: { commerce_config: commerce } };
           return { data: { needs_human: handoff } };
         },
         limit() {
@@ -135,6 +135,28 @@ test('hoodies use their product price and expired or invalid timestamps never se
   assert.equal(app.sends.length, 1);
   assert.match(app.sends[0].text.body, /Sudadera negra: \$28\.99/);
   assert.doesNotMatch(app.sends[0].text.body, /Oversize/);
+});
+
+test('web BOX quotes use the current package price and shipping threshold together', async () => {
+  const app = harness({ BLACKCAT_WHATSAPP_MODE: 'test' });
+  await app.event({ id: 'box2', text: '¿Cuánto sale la BOX 2 con envío?' });
+  await app.event({ id: 'box3', text: '¿Cuánto cuesta el box de 3?' });
+  assert.equal(app.sends.length, 2);
+  assert.match(app.sends[0].text.body, /BOX 2.*\$39\.99/);
+  assert.match(app.sends[0].text.body, /envío nacional cuesta \$3\.99.*\$43\.98/i);
+  assert.match(app.sends[1].text.body, /BOX 3.*\$55\.99/);
+  assert.match(app.sends[1].text.body, /envío nacional es gratis/i);
+});
+
+test('web BOX quotes charge at the threshold and omit a total without shipping settings', async () => {
+  const options = { BLACKCAT_WHATSAPP_MODE: 'test' };
+  const atThreshold = harness(options, { shipping: 399, freeAbove: 5500, boxes: { 2: 5500 } });
+  await atThreshold.event({ text: 'BOX 2' });
+  assert.match(atThreshold.sends[0].text.body, /envío nacional cuesta \$3\.99.*\$58\.99/i);
+  const missing = harness(options, { boxes: { 2: 3999 } });
+  await missing.event({ text: 'BOX 2 con envío' });
+  assert.match(missing.sends[0].text.body, /envío por confirmar/i);
+  assert.doesNotMatch(missing.sends[0].text.body, /total/i);
 });
 
 test('requesting an advisor suppresses future replies until the test sender opts back in', async () => {

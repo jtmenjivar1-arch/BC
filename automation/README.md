@@ -12,7 +12,7 @@ Dos módulos independientes para BLACKCAT STREETWEAR. **No modifica la tienda ni
 - Modo inicial `disabled`: acepta eventos firmados sin consultar datos, guardar eventos ni responder. Una variable ausente o desconocida también bloquea las respuestas.
 - Respuestas sólo a mensajes entrantes de las últimas 24 horas. Sin campañas salientes ni plantillas automáticas.
 - Catálogo leído de `public.products` con `brand='blackcat'`, `active=true`, cortes disponibles y precios de la base de datos. Hoodies y accesorios se muestran con su precio de producto.
-- Envíos: costo y umbral de envío gratis de la web leídos de `site_settings.commerce_config`. Las promociones BOX se consultan en la tienda.
+- Las cotizaciones de BOX 2, 3 y 4 usan el precio, el envío y el umbral de envío gratis de la web en `site_settings.commerce_config`. Las demás promociones se consultan en la tienda.
 - Estado de orden: sólo consulta `public.orders`, con número WhatsApp remitente coincidente; no devuelve direcciones, montos o datos ajenos. `blackcat_manual_orders` sigue privado.
 - Atención humana: comando `asesor` bloquea respuestas automáticas posteriores y registra bandera, sin texto ni número almacenados. Para regresar: `volver al bot`.
 - Deduplicación: tabla `blackcat_ai_events` almacena únicamente ID de mensaje, digest HMAC del remitente y estado, no mensajes.
